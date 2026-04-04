@@ -1,5 +1,8 @@
-// internal/env/env.go
-package env
+// internal/docker/docker.go
+package docker
+
+
+// This file contains the logic for creating and managing Docker containers for secure development environments.
 
 import (
 	"context"
@@ -26,7 +29,7 @@ func getImageForType(envType string) string {
 	}
 }
 
-func Init(environmentType, projectName string) {
+func CreateContainer(environmentType, projectName string) {
 	// Validate environment type
 	validTypes := map[string]bool{"node": true, "python": true, "go": true}
 	if !validTypes[environmentType] {
