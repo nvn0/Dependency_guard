@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"Dependency_guard/internal/env"
-	"Dependency_guard/internal/env/analyze"
-	"Dependency_guard/internal/env/install"
+	"Dependence_guard/internal/env"
+	"Dependence_guard/internal/env/analyze"
+	"Dependence_guard/internal/env/install"
 )
 
 func main() {

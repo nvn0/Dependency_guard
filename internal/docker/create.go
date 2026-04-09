@@ -5,7 +5,7 @@ package docker
 
 import (
 	"context"
-	"dependency_guard/internal/security"
+	//"Dependence_guard/internal/security"
 	"fmt"
 
 	"github.com/docker/docker/api/types/container"
@@ -80,5 +80,5 @@ func CreateContainer(environmentType, projectName string) {
 	fmt.Printf("Container created for %s project (%s): %s\n", environmentType, projectName, resp.ID)
 
 	// Apply iptables rules to isolate network access (only allow localhost/docker bridge)
-	security.CreateIptablesIsolationRules()
+	//security.CreateIptablesIsolationRules()
 }
