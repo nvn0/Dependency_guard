@@ -5,7 +5,7 @@ package docker
 
 import (
 	"context"
-	//"Dependence_guard/internal/security"
+	//"Dependency_guard/internal/security"
 	"fmt"
 
 	"github.com/docker/docker/api/types/container"

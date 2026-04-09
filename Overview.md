@@ -1,5 +1,5 @@
 
-# Dependence Guard - Overview
+# Dependency Guard - Overview
 
 - NUNCA deve confiar no utilizador
 - deve sempre correr análise internamente
