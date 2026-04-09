@@ -1,11 +1,11 @@
 // internal/docker/docker.go
 package docker
 
-
-// This file contains the logic for creating and managing Docker containers for secure development environments.
+// This file contains the logic for onlycreating Docker containers for secure development environments with the bests configs.
 
 import (
 	"context"
+	"dependency_guard/internal/security"
 	"fmt"
 
 	"github.com/docker/docker/api/types/container"
@@ -52,7 +52,18 @@ func CreateContainer(environmentType, projectName string) {
 		&container.HostConfig{
 			ReadonlyRootfs: true,
 			CapDrop:        []string{"ALL"},
-			NetworkMode:    "none",
+			//NetworkMode:    "none",
+			NetworkMode: "bridge", // Allow network access for package installation, can be further restricted with custom network and firewall rules
+			/*
+				PortBindings: nat.PortMap{
+					"8000/tcp": []nat.PortBinding{
+						{
+							HostIP:   "127.0.0.1",  // Apenas localhost
+							HostPort: "8000",
+						},
+					},
+				},
+			*/
 			SecurityOpt: []string{
 				"no-new-privileges",
 				"seccomp=default.json",
@@ -67,4 +78,7 @@ func CreateContainer(environmentType, projectName string) {
 	}
 
 	fmt.Printf("Container created for %s project (%s): %s\n", environmentType, projectName, resp.ID)
+
+	// Apply iptables rules to isolate network access (only allow localhost/docker bridge)
+	security.CreateIptablesIsolationRules()
 }

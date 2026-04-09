@@ -179,14 +179,15 @@ func GenerateProjectFiles(projectName, environmentType, containerName, container
 	GenerateConfigFile(folderPath, projectName, environmentType, containerID)
 
 	//Generate integrity file (empty for now, to be filled after installation)
-	GenerateIntegrityFile(folderPath, projectName)
+	GenerateIntegrityFile(folderPath, projectName, containerID)
 
 }
 
 /*
 Esta funcao chama outras funcoes para criar o container, gerar os ficheiros de configuracao do
 projeto.
-chama a funcoes pra criar a config do apparmor e seccomp, e criar o monitoramento ebpf (mas nao o liga).
+Chama a funcoes pra criar a config do apparmor e seccomp, e criar o monitoramento
+ebpf (mas nao o liga).
 */
 func Init(environmentType, projectName string) {
 	docker.CreateContainer(environmentType, projectName)
