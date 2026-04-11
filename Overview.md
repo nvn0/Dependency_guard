@@ -255,6 +255,7 @@ safe-env stop myproject
 safe-env install myproject npm install    # instala (no ambiente) com enforcement
 safe-env analyze myproject npm install    # análise sem executar (verificar possiveis updates)
 safe-env update myproject  # atualiza dependências
+safe-env <project> audit # mostra libs instaladas, versao, etc
 ```
 
 

@@ -8,8 +8,9 @@ import (
 	//"Dependency_guard/internal/security"
 	"fmt"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	client "github.com/moby/moby/client"
 )
 
 // getImageForType returns the appropriate Docker image based on the environment type.
@@ -37,44 +38,41 @@ func CreateContainer(environmentType, projectName string) {
 		return
 	}
 
-	cli, _ := client.NewClientWithOpts(client.FromEnv)
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		fmt.Printf("Error creating Docker client: %v\n", err)
+		return
+	}
+	defer cli.Close()
 
 	image := getImageForType(environmentType)
 	containerName := "safe-env-" + projectName
 
 	resp, err := cli.ContainerCreate(
 		context.Background(),
-		&container.Config{
-			Image: image,
-			Cmd:   []string{"sleep", "infinity"},
-			Tty:   false,
-		},
-		&container.HostConfig{
-			ReadonlyRootfs: true,
-			CapDrop:        []string{"ALL"},
-			//NetworkMode:    "none",
-			NetworkMode: "bridge", // Allow network access for package installation, can be further restricted with custom network and firewall rules
-			/*
-				PortBindings: nat.PortMap{
-					"8000/tcp": []nat.PortBinding{
-						{
-							HostIP:   "127.0.0.1",  // Apenas localhost
-							HostPort: "8000",
-						},
-					},
-				},
-			*/
-			SecurityOpt: []string{
-				"no-new-privileges",
-				"seccomp=default.json",
+		client.ContainerCreateOptions{
+			Config: &container.Config{
+				Image: image,
+				Cmd:   []string{"sleep", "infinity"},
+				Tty:   false,
 			},
+			HostConfig: &container.HostConfig{
+				ReadonlyRootfs: true,
+				CapDrop:        []string{"ALL"},
+				NetworkMode:    container.NetworkMode("bridge"),
+				SecurityOpt: []string{
+					"no-new-privileges",
+					"seccomp=default.json",
+				},
+			},
+			NetworkingConfig: &network.NetworkingConfig{},
+			Name:             containerName,
 		},
-		nil, nil,
-		containerName,
 	)
 
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error creating container: %v\n", err)
+		return
 	}
 
 	fmt.Printf("Container created for %s project (%s): %s\n", environmentType, projectName, resp.ID)
