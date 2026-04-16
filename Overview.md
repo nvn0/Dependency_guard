@@ -27,10 +27,10 @@ safe-env create my-project
 	- Possivel versão com alpine (precisa ponderação por causa da musl)
 	- Criar com rede em modo bridge ( port bindings opcionais, talvez none, só para casos especificos)
 - aplica:
-	- seccomp profile
-	- AppArmor
+	- seccomp profile (regras de systemcalls, ptrace, mount, kexec, clone)
+	- AppArmor (proteger ficheiros sensíveis (.ssh, passwd, .env, shadow), bloquear execução de binários perigosos (wget, curl, sh), mount, ptrace, etc)
 	- limites de FS (~/.ssh, passwd)
-	- regras de iptables
+	- regras de iptables (para situações especificas apenas)
 		- `iptables -I DOCKER-USER -i docker0 ! -d 172.17.0.0/16 -j DROP` -> apenas localhost -> Allow localhost only;
 		- `iptables -I DOCKER-USER -i docker0 -j DROP` -> aplica a todos os containers -> Apenas para lockdown geral;
 
@@ -39,6 +39,33 @@ safe-env create my-project
 	- eBPF (controla syscalls, rede, acessos ao filesystem)
 	- policy base (definir politicas num toml/yaml/json)
 	- cria workspace isolado (sem acesso ao host real)
+
+
+```
+docker run --security-opt seccomp=seccomp.json --security-opt apparmor=meu-profile
+```
+
+Docker já usa:
+- seccomp default
+- AppArmor docker-default
+
+-> É necessário fortificar.
+
+| componente | função            |
+| ---------- | ----------------- |
+| Docker     | lifecycle         |
+| eBPF       | rede dinâmica     |
+| seccomp    | syscalls          |
+| AppArmor   | filesystem + exec |
+
+| config                 | quem aplica |
+| ---------------------- | ----------- |
+| filesystem rules       | AppArmor    |
+| syscall baseline       | seccomp     |
+| network monitor        | eBPF        |
+| lockdown de rede total | iptables    |
+
+
 
 
 ## 2. Instalar libs no ambiente criado + verificações
@@ -104,6 +131,9 @@ Usar whitelist:
 
 
 **Fase 3 - Runtime enforcement**
+
+- eBPF consegueria implementar um modo de rede `on / off / host-only` por container
+- eBPF pode aplicar whitelist de dominios e regras por processo
 
 Se acontecer:
 - connect() → BLOCK
@@ -269,3 +299,9 @@ safe-env logs
 safe-env diff
 safe-env trust
 ```
+
+
+
+
+
+

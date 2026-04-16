@@ -73,7 +73,7 @@ func GenerateConfigFile(folderPath, projectName, environmentType, containerID st
 		Env_type:    environmentType,
 		ContainerID: containerID,
 		Runtime: Runtime{
-			Network: "deny",
+			Network: "allow",
 			Filesystem: Filesystem{
 				Deny: []string{
 					"~/.ssh",
@@ -122,11 +122,11 @@ func GenerateStateFile(folderPath, projectName, environmentType, containerName, 
 	var fileName string = fmt.Sprintf("%s_state.json", projectName)
 
 	file, err := os.Create(fmt.Sprintf("%s/%s", folderPath, fileName))
-	defer file.Close()
 	if err != nil {
 		fmt.Printf("Error creating state file: %v\n", err)
 		return
 	}
+	defer file.Close()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -148,11 +148,11 @@ func GenerateIntegrityFile(folderPath, projectName, containerID string) {
 	var fileName string = fmt.Sprintf("%s_integrity.json", projectName)
 
 	file, err := os.Create(fmt.Sprintf("%s/%s", folderPath, fileName))
-	defer file.Close()
 	if err != nil {
 		fmt.Printf("Error creating integrity file: %v\n", err)
 		return
 	}
+	defer file.Close()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
