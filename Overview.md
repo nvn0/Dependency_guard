@@ -15,6 +15,8 @@
 
 Cria o ambiente de desenvolvimento seguro (docker bem configurado + hardening)
 
+**Importante:** O container e a configs extra devem ser fortificadas, mas utilizaveis, deve ser apartir dos ficheiros de config (config.json) que se ativa controlos mais agressivos, tendo assim a possibilidade de reverter.
+
 Exemplo de comando:
 ```
 safe-env create my-project
@@ -26,13 +28,16 @@ safe-env create my-project
 	- Uso da imagem slim do debian (mais minima mas com boa compatibilidade)
 	- Possivel versão com alpine (precisa ponderação por causa da musl)
 	- Criar com rede em modo bridge ( port bindings opcionais, talvez none, só para casos especificos)
-- aplica:
+
+- Cria ficheiros de config para o container em especifico
+	- config.json (EDITÁVEL)
+	- state.json (INTERNO)
+	- integrity.json -> Para assinaturas/hashes
+
+- Cria:
 	- seccomp profile (regras de systemcalls, ptrace, mount, kexec, clone)
-	- AppArmor (proteger ficheiros sensíveis (.ssh, passwd, .env, shadow), bloquear execução de binários perigosos (wget, curl, sh), mount, ptrace, etc)
+	- AppArmor profile para o container e varia conforme o tipo de projeto (proteger ficheiros sensíveis (.ssh, passwd, .env, shadow), bloquear execução de binários perigosos (wget, curl, sh), mount, ptrace, etc)
 	- limites de FS (~/.ssh, passwd)
-	- regras de iptables (para situações especificas apenas)
-		- `iptables -I DOCKER-USER -i docker0 ! -d 172.17.0.0/16 -j DROP` -> apenas localhost -> Allow localhost only;
-		- `iptables -I DOCKER-USER -i docker0 -j DROP` -> aplica a todos os containers -> Apenas para lockdown geral;
 
 - prepara:
 	- cgroup dedicado (para eBPF)
@@ -41,9 +46,16 @@ safe-env create my-project
 	- cria workspace isolado (sem acesso ao host real)
 
 
+regras de iptables (para situações especificas apenas - comando de lockdown)
+- `iptables -I DOCKER-USER -i docker0 ! -d 172.17.0.0/16 -j DROP` -> apenas localhost -> Allow localhost only;
+- `iptables -I DOCKER-USER -i docker0 -j DROP` -> aplica a todos os containers -> Apenas para lockdown geral;
+
+
+algo assim:
 ```
 docker run --security-opt seccomp=seccomp.json --security-opt apparmor=meu-profile
 ```
+
 
 Docker já usa:
 - seccomp default
@@ -273,6 +285,47 @@ decisão:
 ✔ safe → atualizar
 ⚠ suspeito → bloquear
 ```
+
+
+# 5. Comandos de start/stop
+
+Comandos para ligar/desligar um container existente
+
+```
+safe-env start myproject
+```
+
+```
+safe-env stop myproject
+```
+
+
+aplicam algo como:
+
+```
+sudo docker stop <CONTAINER_ID-ou-NOME>
+```
+
+ou
+
+```
+sudo docker stop <CONTAINER_ID-ou-NOME>
+```
+
+
+- E ainda leem o ficheiro config.json para atualizar os controlos
+- Ligam o modulo do eBPF para monitorizar o container
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Comandos:

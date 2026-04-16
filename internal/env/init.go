@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 // Config file structs
@@ -63,6 +64,34 @@ type Integrityfile struct {
 	ProjectName string `json:"project_name"`
 	ContainerID string `json:"container_id"`
 	Library     string `json:"fingerprint"`
+}
+
+// cria uma pasta dentro da home do utilizador (se não existir)
+func ensureDirInHome(dirName string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	path := filepath.Join(home, dirName)
+
+	// MkdirAll já trata do "se não existir"
+	err = os.MkdirAll(path, 0755)
+	if err != nil {
+		return "", err
+	}
+
+	return path, nil
+}
+
+// criar pasta do projeto dentro da pasta base
+func createProjectDir(project_path, projectName string) (string, error) {
+	projectPath := filepath.Join(project_path, projectName)
+	err := os.MkdirAll(projectPath, 0755)
+	if err != nil {
+		return "", err
+	}
+	return projectPath, nil
 }
 
 func GenerateConfigFile(folderPath, projectName, environmentType, containerID string) {
@@ -159,27 +188,17 @@ func GenerateIntegrityFile(folderPath, projectName, containerID string) {
 	encoder.Encode(integrity)
 }
 
-// Cria a pasta de ficheiros do projeto e chama as respetivas funç~oes pra criar cada um dos ficheiros de configuracao
-func GenerateProjectFiles(projectName, environmentType, containerName, containerID string) {
-
-	fmt.Printf("Generating project files for %s environment...\n", environmentType)
-
-	//Create folder
-	folderPath := fmt.Sprintf("./../projects_data/%s", projectName)
-	err := os.MkdirAll(folderPath, os.ModePerm)
-	if err != nil {
-		fmt.Printf("Error creating project folder: %v\n", err)
-		return
-	}
+// Cria a pasta de ficheiros do projeto e chama as respetivas funçoes pra criar cada um dos ficheiros de configuracao
+func GenerateProjectFiles(project_path, projectName, environmentType, containerName, containerID string) {
 
 	//Generate state file
-	GenerateStateFile(folderPath, projectName, environmentType, containerName, containerID)
+	GenerateStateFile(project_path, projectName, environmentType, containerName, containerID)
 
 	//Generate config file
-	GenerateConfigFile(folderPath, projectName, environmentType, containerID)
+	GenerateConfigFile(project_path, projectName, environmentType, containerID)
 
 	//Generate integrity file (empty for now, to be filled after installation)
-	GenerateIntegrityFile(folderPath, projectName, containerID)
+	GenerateIntegrityFile(project_path, projectName, containerID)
 
 }
 
@@ -190,7 +209,22 @@ Chama a funcoes pra criar a config do apparmor e seccomp, e criar o monitorament
 ebpf (mas nao o liga).
 */
 func Init(environmentType, projectName string) {
-	docker.CreateContainer(environmentType, projectName)
+	id, containerName := docker.CreateContainer(environmentType, projectName)
 	fmt.Printf("Initialized %s environment for project '%s'\n", environmentType, projectName)
 
+	base_path, err := ensureDirInHome("safe-env-projects")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Dir criado em:", base_path)
+
+	project_path, err := createProjectDir(base_path, projectName)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Project directory created at:", project_path)
+
+	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id)
 }

@@ -30,18 +30,18 @@ func getImageForType(envType string) string {
 	}
 }
 
-func CreateContainer(environmentType, projectName string) {
+func CreateContainer(environmentType, projectName string) (string, string) {
 	// Validate environment type
 	validTypes := map[string]bool{"node": true, "python": true, "go": true}
 	if !validTypes[environmentType] {
 		fmt.Printf("Invalid environment type: %s. Valid options: node, python, go\n", environmentType)
-		return
+		return "", ""
 	}
 
 	cli, err := client.New(client.FromEnv)
 	if err != nil {
 		fmt.Printf("Error creating Docker client: %v\n", err)
-		return
+		return "", ""
 	}
 	defer cli.Close()
 
@@ -72,10 +72,11 @@ func CreateContainer(environmentType, projectName string) {
 
 	if err != nil {
 		fmt.Printf("Error creating container: %v\n", err)
-		return
+		return "", ""
 	}
 
 	fmt.Printf("Container created for %s project (%s): %s\n", environmentType, projectName, resp.ID)
+	return resp.ID, containerName
 
 	// Apply iptables rules to isolate network access (only allow localhost/docker bridge)
 	//security.CreateIptablesIsolationRules()
