@@ -190,6 +190,10 @@ func GenerateIntegrityFile(folderPath, projectName, containerID string) {
 
 // Cria a pasta de ficheiros do projeto e chama as respetivas funçoes pra criar cada um dos ficheiros de configuracao
 func GenerateProjectFiles(project_path, projectName, environmentType, containerName, containerID string) {
+	if containerID == "" {
+		fmt.Println("Error: Container ID is empty. Cannot generate project files.")
+		return
+	}
 
 	//Generate state file
 	GenerateStateFile(project_path, projectName, environmentType, containerName, containerID)
@@ -209,7 +213,12 @@ Chama a funcoes pra criar a config do apparmor e seccomp, e criar o monitorament
 ebpf (mas nao o liga).
 */
 func Init(environmentType, projectName string) {
-	id, containerName := docker.CreateContainer(environmentType, projectName)
+	id, err := docker.CreateContainer(environmentType, projectName)
+	if err != nil {
+		panic(err) //erro mostra filsystem e path do projeto, para facilitar debugging, arranjar depois para erro mais generico
+		//fmt.Println("Error creating container:", err)
+	}
+
 	fmt.Printf("Initialized %s environment for project '%s'\n", environmentType, projectName)
 
 	base_path, err := ensureDirInHome("safe-env-projects")
@@ -226,5 +235,6 @@ func Init(environmentType, projectName string) {
 
 	fmt.Println("Project directory created at:", project_path)
 
+	containerName := "safe-env-" + projectName
 	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id)
 }

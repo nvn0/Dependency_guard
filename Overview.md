@@ -1,4 +1,5 @@
 
+[[Exemplo de estrutura]]
 # Dependency Guard - Overview
 
 - NUNCA deve confiar no utilizador
@@ -12,6 +13,12 @@
 
 
 ## 1. Criar ambiente seguro
+
+Pre-requisitos:
+```
+sudo usermod -aG docker $USER
+```
+- para evitar o uso de `sudo` ao correr o programa.
 
 Cria o ambiente de desenvolvimento seguro (docker bem configurado + hardening)
 
