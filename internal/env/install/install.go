@@ -1,4 +1,4 @@
-// internal/envinstall/install.go
+// internal/env/install/install.go
 package install
 
 import (

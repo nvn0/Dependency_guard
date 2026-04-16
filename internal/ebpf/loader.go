@@ -1,4 +1,6 @@
 // internal/ebpf/loader.go
+//go:build !cgo
+
 package ebpf
 
 import (
