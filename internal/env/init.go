@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Config file structs
@@ -28,7 +29,7 @@ type Config struct {
 }
 
 type Runtime struct {
-	Network    string     `json:"network"`
+	Network    bool       `json:"network"`
 	Filesystem Filesystem `json:"filesystem"`
 }
 
@@ -102,7 +103,7 @@ func GenerateConfigFile(folderPath, projectName, environmentType, containerID st
 		Env_type:    environmentType,
 		ContainerID: containerID,
 		Runtime: Runtime{
-			Network: "allow",
+			Network: true,
 			Filesystem: Filesystem{
 				Deny: []string{
 					"~/.ssh",
@@ -141,6 +142,7 @@ func GenerateStateFile(folderPath, projectName, environmentType, containerName, 
 		Env_type:      environmentType,
 		ContainerName: containerName,
 		ContainerID:   containerID,
+		CreatedAt:     time.Now().Format("15:04:05 02/01/2006"), //European date format
 		Status:        "initialized",
 	}
 
