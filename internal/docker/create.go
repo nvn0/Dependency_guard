@@ -10,7 +10,7 @@ import (
 
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
-	client "github.com/moby/moby/client"
+	client "github.com/moby/moby/client" // go get github.com/moby/moby/client
 )
 
 // getImageForType returns the appropriate Docker image based on the environment type.
@@ -38,7 +38,7 @@ func CreateContainer(environmentType, projectName string) {
 		return
 	}
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := client.New(client.FromEnv)
 	if err != nil {
 		fmt.Printf("Error creating Docker client: %v\n", err)
 		return

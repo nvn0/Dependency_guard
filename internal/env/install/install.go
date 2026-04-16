@@ -6,13 +6,13 @@ import (
 	"os/exec"
 )
 
-func Run(args []string) {
+func Run(projectName, libraryName string) {
 	fmt.Println("Running secure install...")
 
 	cmd := exec.Command("docker", append([]string{
 		"exec",
 		"safe-env",
-	}, args...)...)
+	}, "npm", "install", libraryName)...)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
