@@ -96,7 +96,7 @@ func createProjectDir(project_path, projectName string) (string, error) {
 }
 
 func GenerateConfigFile(folderPath, projectName, environmentType, containerID string) {
-	fmt.Printf("Generating config file for %s environment...\n", environmentType)
+	fmt.Printf("\nGenerating config file for %s environment...\n", environmentType)
 
 	cfg := Config{
 		ProjectName: projectName,
@@ -147,7 +147,7 @@ func GenerateStateFile(folderPath, projectName, environmentType, containerName, 
 	}
 
 	stateData, _ := json.MarshalIndent(state, "", "  ")
-	fmt.Println("State file content:")
+	fmt.Println("\nState file content:")
 	fmt.Println(string(stateData))
 
 	var fileName string = fmt.Sprintf("%s_state.json", projectName)
@@ -173,7 +173,7 @@ func GenerateIntegrityFile(folderPath, projectName, containerID string) {
 	}
 
 	integrityData, _ := json.MarshalIndent(integrity, "", "  ")
-	fmt.Println("Integrity file content:")
+	fmt.Println("\nIntegrity file content:")
 	fmt.Println(string(integrityData))
 
 	var fileName string = fmt.Sprintf("%s_integrity.json", projectName)
@@ -221,21 +221,21 @@ func Init(environmentType, projectName string) {
 		//fmt.Println("Error creating container:", err)
 	}
 
-	fmt.Printf("Initialized %s environment for project '%s'\n", environmentType, projectName)
+	fmt.Printf("\nInitialized %s environment for project '%s'\n", environmentType, projectName)
 
 	base_path, err := ensureDirInHome("safe-env-projects")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Dir criado em:", base_path)
+	fmt.Println("\nDir criado em:", base_path)
 
 	project_path, err := createProjectDir(base_path, projectName)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Project directory created at:", project_path)
+	fmt.Println("\nProject directory created at:", project_path)
 
 	containerName := "safe-env-" + projectName
 	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id)

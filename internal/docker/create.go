@@ -47,7 +47,7 @@ func pullImage(cli *client.Client, imageName string) error {
 		return fmt.Errorf("error reading pull response: %v", err)
 	}
 
-	fmt.Printf("Image %s pulled successfully\n", imageName)
+	fmt.Printf("\nImage %s pulled successfully\n", imageName)
 	return nil
 }
 
@@ -55,13 +55,13 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	// Validate environment type
 	validTypes := map[string]bool{"node": true, "python": true, "go": true}
 	if !validTypes[environmentType] {
-		fmt.Printf("Invalid environment type: %s. Valid options: node, python, go\n", environmentType)
+		fmt.Printf("\nInvalid environment type: %s. Valid options: node, python, go\n", environmentType)
 		return "", fmt.Errorf("invalid environment type: %s", environmentType)
 	}
 
 	cli, err := client.New(client.FromEnv)
 	if err != nil {
-		fmt.Printf("Error creating Docker client: %v\n", err)
+		fmt.Printf("\nError creating Docker client: %v\n", err)
 		return "", err
 	}
 	defer cli.Close()
@@ -72,7 +72,7 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	// Pull image if it doesn't exist locally
 	err = pullImage(cli, image)
 	if err != nil {
-		fmt.Printf("Error pulling image: %v\n", err)
+		fmt.Printf("\nError pulling image: %v\n", err)
 		return "", err
 	}
 
@@ -83,7 +83,7 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	profileName, err := security.EnsureAppArmorProfileLoaded(armorProfile)
 	if err != nil {
 		// If custom profile fails, fall back to docker-default
-		fmt.Printf("Falling back to docker-default AppArmor profile\n")
+		fmt.Printf("\nFalling back to docker-default AppArmor profile\n")
 		profileName = "docker-default"
 	}
 
@@ -118,8 +118,8 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 		return "", err
 	}
 
-	fmt.Printf("Container created for %s project: %s with ID: %s\n", environmentType, projectName, resp.ID)
-	fmt.Printf("Using AppArmor profile: %s\n", profileName)
+	fmt.Printf("\nContainer created for %s project: %s with ID: %s\n", environmentType, projectName, resp.ID)
+	fmt.Printf("\nUsing AppArmor profile: %s\n", profileName)
 
 	return resp.ID, nil
 
