@@ -1,0 +1,121 @@
+#include <tunables/global>
+
+profile nodejs-restricted flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  #include <abstractions/nodejs>
+
+  # Capabilities - minimal set needed for Node.js
+  capability dac_override,
+  capability dac_read_search,
+  capability setgid,
+  capability setuid,
+  capability setfcap,
+  capability net_bind_service,
+
+  # Deny dangerous capabilities
+  deny capability sys_admin,
+  deny capability sys_module,
+  deny capability sys_ptrace,
+  deny capability sys_rawio,
+
+  # Filesystem - read-only root with specific write-allowed paths
+  / r,
+  /proc/ r,
+  /proc/* r,
+  /sys/ r,
+  /sys/kernel/mm/ r,
+  /dev/null rw,
+  /dev/zero rw,
+  /dev/full rw,
+  /dev/random r,
+  /dev/urandom r,
+  /dev/pts/* rw,
+  /dev/tty rw,
+
+  # Restrict /tmp and /var/tmp - only allow app's own temp directory
+  /tmp/ r,
+  /tmp/** rw,
+  /var/tmp/ r,
+  /var/tmp/** rw,
+
+  # Node.js paths - read-only
+  /usr/lib/node_modules/ r,
+  /usr/lib/node_modules/** r,
+  /usr/local/lib/node_modules/ r,
+  /usr/local/lib/node_modules/** r,
+  /usr/local/bin/node r,
+  /usr/bin/node r,
+
+  # Common Node.js app paths - allow reads and writes within app directory
+  /app/ r,
+  /app/** rw,
+  /home/ r,
+  /home/** rw,
+  /opt/ r,
+  /opt/** rw,
+
+  # Libraries
+  /lib/ r,
+  /lib/** mr,
+  /usr/lib/ r,
+  /usr/lib/** mr,
+  /usr/local/lib/ r,
+  /usr/local/lib/** mr,
+
+  # Binaries
+  /bin/ r,
+  /bin/** mr,
+  /usr/bin/ r,
+  /usr/bin/** mr,
+  /usr/local/bin/ r,
+  /usr/local/bin/** mr,
+  /usr/sbin/ r,
+  /usr/sbin/** mr,
+
+  # Node process
+  /proc/[0-9]*/stat r,
+  /proc/[0-9]*/status r,
+  /proc/[0-9]*/limits r,
+  /proc/[0-9]*/fd/ r,
+  /proc/[0-9]*/fd/** r,
+  /proc/[0-9]*/cmdline r,
+
+  # Deny access to sensitive files
+  deny /etc/shadow rwkl,
+  deny /etc/passwd w,
+  deny /etc/group w,
+  deny /root/** rwkl,
+  deny /home/**/.ssh/** rwkl,
+  deny /home/**/.ssh rwkl,
+
+  # Network rules - allow IPv4 and IPv6
+  network inet dgram,
+  network inet stream,
+  network inet6 dgram,
+  network inet6 stream,
+  network unix stream,
+  network unix dgram,
+
+  # Deny raw sockets
+  deny network inet raw,
+  deny network inet6 raw,
+
+  # Signal rules - only allow signals to own processes
+  signal (send) peer=same,
+  signal (receive) peer=same,
+
+  # Deny ptrace
+  deny ptrace,
+
+  # Unix socket communication
+  unix (send,receive) type=stream,
+  unix (send,receive) type=dgram,
+
+  # Deny mount operations
+  deny mount,
+  deny umount,
+  deny pivot_root,
+
+  # Deny file locking
+  deny /proc/locks r,
+}
