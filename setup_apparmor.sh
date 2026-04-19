@@ -47,9 +47,9 @@ for profile_file in "$PROFILE_DIR"/*; do
         
         # Copy the profile to /etc/apparmor.d/
         if cp "$profile_file" "$destination"; then
-            echo "  ✓ Copied to $destination"
+            echo "  Copied to $destination"
         else
-            echo "  ✗ Failed to copy $profile_name to /etc/apparmor.d/"
+            echo "  Failed to copy $profile_name to /etc/apparmor.d/"
             exit 1
         fi
         
@@ -58,9 +58,9 @@ for profile_file in "$PROFILE_DIR"/*; do
         
         # Load the profile
         if apparmor_parser -r "$destination"; then
-            echo "  ✓ Successfully loaded $profile_name"
+            echo "  Successfully loaded $profile_name"
         else
-            echo "  ✗ Failed to load $profile_name"
+            echo "  Failed to load $profile_name"
             exit 1
         fi
         
@@ -72,13 +72,13 @@ echo ""
 echo "Reloading AppArmor service..."
 if systemctl is-active --quiet apparmor; then
     systemctl reload apparmor
-    echo "  ✓ AppArmor service reloaded"
+    echo "  AppArmor service reloaded"
 else
-    echo "  ⚠ AppArmor service is not running, but profiles are loaded"
+    echo "  AppArmor service is not running, but profiles are loaded"
 fi
 
 echo ""
-echo "✓ All AppArmor profiles installed successfully!"
+echo "All AppArmor profiles installed successfully!"
 echo ""
 echo "To verify the loaded profiles, run:"
 echo "  sudo aa-status"
