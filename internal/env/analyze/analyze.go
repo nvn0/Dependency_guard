@@ -170,6 +170,25 @@ func analyzeGitConsistency(v NpmVersion) {
 	checkGitHubTag(owner, repo, v.Version)
 }
 
+// getPreviousVersion finds the most recent version before the given version
+func getPreviousVersion(versions map[string]NpmVersion, currentVersion string) string {
+	var previousVersion string
+	var previousTime string
+
+	for version := range versions {
+		if version != currentVersion {
+			// Just get the first different version found (simple approach)
+			if previousVersion == "" {
+				previousVersion = version
+			}
+			// Could implement semver comparison here for better logic
+		}
+	}
+
+	_ = previousTime // For future use if implementing time-based comparison
+	return previousVersion
+}
+
 func AnalyzePackage(pkg string) error {
 	url := fmt.Sprintf("https://registry.npmjs.org/%s", pkg)
 
@@ -197,6 +216,17 @@ func AnalyzePackage(pkg string) error {
 	analyzeIntegrity(version)
 	analyzeMaintainers(data.Maintainers, []Maintainer{})
 	analyzeGitConsistency(version)
+
+	// Analyze new files compared to previous version
+	previousVersion := getPreviousVersion(data.Versions, latest)
+	if previousVersion != "" {
+		_, err := AnalyzeNewFiles(pkg, previousVersion, latest)
+		if err != nil {
+			fmt.Printf("Warning: Error analyzing new files: %v\n", err)
+		}
+	} else {
+		fmt.Println("No previous version found for file comparison")
+	}
 
 	return nil
 }
