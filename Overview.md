@@ -60,7 +60,7 @@ regras de iptables (para situações especificas apenas - comando de lockdown)
 
 algo assim:
 ```
-docker run --security-opt seccomp=seccomp.json --security-opt apparmor=meu-profile
+docker run --security-opt seccomp=seccomp.json --security-opt apparmor=my-profile
 ```
 
 
@@ -69,6 +69,8 @@ Docker já usa:
 - AppArmor docker-default
 
 -> É necessário fortificar.
+
+**Nota:** Depois de o container ser criado o apparmor profile e seccomp não podem ser alterados.
 
 | componente | função            |
 | ---------- | ----------------- |
@@ -218,7 +220,7 @@ analisa:
 - dependências que vão ser resolvidas
 - novas versões
 - novas dependências transitivas
-
+- deverá usar um container extra e descartavel para a analise de novos ficheiros de uma nova versao de uma lib
 
 **Deve fazer:**
 - checks de metadata

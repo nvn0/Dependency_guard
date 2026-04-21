@@ -27,7 +27,7 @@ func getImageForType(envType string) string {
 	case "go":
 		return "golang:1.21"
 	default:
-		return "node:20-slim"
+		return "debian:bookworm-slim"
 	}
 }
 
