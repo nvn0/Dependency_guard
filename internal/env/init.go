@@ -10,6 +10,7 @@ specified type (Node.js, Python, Go).
 */
 
 import (
+	"Dependency_guard/internal/security"
 	"Dependency_guard/internal/docker"
 	"encoding/json"
 	"fmt"
@@ -18,23 +19,11 @@ import (
 	"time"
 )
 
-// Config file structs
+// Config file struct - Mutable runtime configuration
 type Config struct {
-	ProjectName string   `json:"project_name"`
-	Env_type    string   `json:"env_type"`
-	ContainerID string   `json:"container_id"`
-	Runtime     Runtime  `json:"runtime"`
-	Install     Install  `json:"install"`
-	Security    Security `json:"security"`
-}
-
-type Runtime struct {
-	Network    bool       `json:"network"`
-	Filesystem Filesystem `json:"filesystem"`
-}
-
-type Filesystem struct {
-	Deny []string `json:"deny"`
+	Install Install `json:"install"`
+	Network bool    `json:"network"`
+	EBPF    EBPF    `json:"ebpf"`
 }
 
 type Install struct {
@@ -42,22 +31,31 @@ type Install struct {
 	DelayHours   int  `json:"delay_hours"`
 }
 
-type Security struct {
-	Ebpf     bool `json:"ebpf"`
-	Apparmor bool `json:"apparmor"`
-	Seccomp  bool `json:"seccomp"`
+type EBPF struct {
+	Enabled   bool     `json:"enabled"`
+	Whitelist []string `json:"whitelist"`
+	DenyPaths []string `json:"deny_paths"`
 }
 
 //---- End of config file structs -----
 
-// State file struct
+// State file struct - Immutable state and security info
 type Statefile struct {
-	ProjectName   string `json:"project_name"`
-	Env_type      string `json:"env_type"`
-	ContainerName string `json:"container_name"`
-	ContainerID   string `json:"container_id"`
-	CreatedAt     string `json:"timestamp"`
-	Status        string `json:"status"`
+	ProjectName   string            `json:"project_name"`
+	Env_type      string            `json:"env_type"`
+	ContainerName string            `json:"container_name"`
+	ContainerID   string            `json:"container_id"`
+	CreatedAt     string            `json:"timestamp"`
+	Status        string            `json:"status"`
+	SecurityFixed SecurityImmutable `json:"security_immutable"`
+}
+
+type SecurityImmutable struct {
+	AppArmorProfile     string   `json:"apparmor_profile"`
+	AppArmorPath        string   `json:"apparmor_path"`
+	SeccompEnabled      bool     `json:"seccomp_enabled"`
+	ReadonlyFilesystem  bool     `json:"readonly_filesystem"`
+	CapabilitiesDropped []string `json:"capabilities_dropped"`
 }
 
 // Integrity file struct
@@ -95,31 +93,27 @@ func createProjectDir(project_path, projectName string) (string, error) {
 	return projectPath, nil
 }
 
-func GenerateConfigFile(folderPath, projectName, environmentType, containerID string) {
-	fmt.Printf("\nGenerating config file for %s environment...\n", environmentType)
+func GenerateConfigFile(folderPath, projectName string) {
+	fmt.Printf("\nGenerating config file for %s...\n", projectName)
 
 	cfg := Config{
-		ProjectName: projectName,
-		Env_type:    environmentType,
-		ContainerID: containerID,
-		Runtime: Runtime{
-			Network: true,
-			Filesystem: Filesystem{
-				Deny: []string{
-					"~/.ssh",
-					".env",
-					"/etc/passwd",
-				},
-			},
-		},
 		Install: Install{
 			AllowScripts: false,
 			DelayHours:   24,
 		},
-		Security: Security{
-			Ebpf:     true,
-			Apparmor: true,
-			Seccomp:  true,
+		Network: true,
+		EBPF: EBPF{
+			Enabled: true,
+			Whitelist: []string{
+				"npm.npmjs.com",
+				"registry.npmjs.org",
+			},
+			DenyPaths: []string{
+				"~/.ssh",
+				".env",
+				"/etc/passwd",
+				"/etc/shadow",
+			},
 		},
 	}
 
@@ -128,14 +122,15 @@ func GenerateConfigFile(folderPath, projectName, environmentType, containerID st
 		panic(err)
 	}
 
-	err = os.WriteFile(fmt.Sprintf("%s/config.json", folderPath), data, 0644)
+	fileName := fmt.Sprintf("%s/%s_config.json", folderPath, projectName)
+	err = os.WriteFile(fileName, data, 0644)
 	if err != nil {
 		panic(err)
 	}
 
 }
 
-func GenerateStateFile(folderPath, projectName, environmentType, containerName, containerID string) {
+func GenerateStateFile(folderPath, projectName, environmentType, containerName, containerID, appArmorProfile, appArmorPath string) {
 
 	state := Statefile{
 		ProjectName:   projectName,
@@ -144,6 +139,13 @@ func GenerateStateFile(folderPath, projectName, environmentType, containerName, 
 		ContainerID:   containerID,
 		CreatedAt:     time.Now().Format("15:04:05 02/01/2006"), //European date format
 		Status:        "initialized",
+		SecurityFixed: SecurityImmutable{
+			AppArmorProfile:     appArmorProfile,
+			AppArmorPath:        appArmorPath,
+			SeccompEnabled:      true,
+			ReadonlyFilesystem:  true,
+			CapabilitiesDropped: []string{"ALL"},
+		},
 	}
 
 	stateData, _ := json.MarshalIndent(state, "", "  ")
@@ -191,17 +193,17 @@ func GenerateIntegrityFile(folderPath, projectName, containerID string) {
 }
 
 // Cria a pasta de ficheiros do projeto e chama as respetivas funçoes pra criar cada um dos ficheiros de configuracao
-func GenerateProjectFiles(project_path, projectName, environmentType, containerName, containerID string) {
+func GenerateProjectFiles(project_path, projectName, environmentType, containerName, containerID, appArmorProfile, appArmorPath string) {
 	if containerID == "" {
 		fmt.Println("Error: Container ID is empty. Cannot generate project files.")
 		return
 	}
 
-	//Generate state file
-	GenerateStateFile(project_path, projectName, environmentType, containerName, containerID)
+	//Generate state file (immutable security info)
+	GenerateStateFile(project_path, projectName, environmentType, containerName, containerID, appArmorProfile, appArmorPath)
 
-	//Generate config file
-	GenerateConfigFile(project_path, projectName, environmentType, containerID)
+	//Generate config file (mutable runtime configuration)
+	GenerateConfigFile(project_path, projectName)
 
 	//Generate integrity file (empty for now, to be filled after installation)
 	GenerateIntegrityFile(project_path, projectName, containerID)
@@ -238,5 +240,9 @@ func Init(environmentType, projectName string) {
 	fmt.Println("\nProject directory created at:", project_path)
 
 	containerName := "safe-env-" + projectName
-	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id)
+	
+	// Get AppArmor profile info
+	armorProfile := security.GetAppArmorProfileForEnv(environmentType)
+	
+	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id, armorProfile.Name, armorProfile.InstalledPath)
 }
