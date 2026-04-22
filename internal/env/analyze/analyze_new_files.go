@@ -14,8 +14,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"Dependency_guard/internal/docker"
+	//"Dependency_guard/internal/docker"
 )
 
 // AnalyzeNewFiles compares two npm package versions and identifies new files
@@ -85,6 +84,7 @@ func fetchTarballURL(packageName, version string) (string, error) {
 }
 
 // listFilesFromTarball downloads and extracts file listing from a npm tarball
+// Nao é feito um download real do tarball para o disco, é feito tudo em memória para eficiência, lido  como network stream
 func listFilesFromTarball(tarballURL string) ([]string, error) {
 	resp, err := http.Get(tarballURL)
 	if err != nil {
@@ -148,31 +148,4 @@ func diffFiles(oldFiles, newFiles []string) []string {
 	}
 
 	return newFilesList
-}
-
-// AnalyzeNewFilesInContainer uses an ephemeral Docker container to analyze npm packages
-// (Alternative approach using container isolation)
-// Uses node:alpine for minimal footprint
-func AnalyzeNewFilesInContainer(packageName, oldVersion, newVersion string) ([]string, error) {
-	fmt.Printf("\n Starting ephemeral analysis container for %s\n", packageName)
-
-	// Create ephemeral container (uses node:alpine by default)
-	containerID, err := docker.CreateEphemeralContainer()
-	if err != nil {
-		return nil, err
-	}
-	defer docker.StopAndRemoveContainer(containerID)
-
-	// Install necessary tools
-	_, err = docker.ExecuteInContainer(containerID, "npm", []string{"install", "-g", "npm"})
-	if err != nil {
-		fmt.Printf("Warning: Error installing npm: %v\n", err)
-	}
-
-
-	// For now, we use the direct approach (listFilesFromTarball)
-	fmt.Println(" Analysis complete, container cleaned up")
-
-	
-
 }
