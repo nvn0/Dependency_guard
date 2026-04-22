@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/mod/semver"
 )
 
 type NpmVersion struct {
@@ -40,7 +43,7 @@ func analyzeTime(pkg NpmPackage, version string) {
 	fmt.Println(" Published:", t)
 
 	if age < 24*time.Hour {
-		fmt.Println(" versão muito recente (possível risco)")
+		fmt.Println(" versão muito recente (24h <) (possível risco)")
 	}
 }
 
@@ -170,23 +173,54 @@ func analyzeGitConsistency(v NpmVersion) {
 	checkGitHubTag(owner, repo, v.Version)
 }
 
-// getPreviousVersion finds the most recent version before the given version
-func getPreviousVersion(versions map[string]NpmVersion, currentVersion string) string {
-	var previousVersion string
-	var previousTime string
+// getPreviousVersion finds the immediate previous version before the given version using semver
+func getPreviousVersion(pkg NpmPackage, currentVersion string) string {
+	// Collect all valid semantic versions
+	var versions []string
 
-	for version := range versions {
-		if version != currentVersion {
-			// Just get the first different version found (simple approach)
-			if previousVersion == "" {
-				previousVersion = version
-			}
-			// Could implement semver comparison here for better logic
+	for version := range pkg.Time {
+		// Skip non-version entries
+		if version == "created" || version == "modified" || version == currentVersion {
+			continue
+		}
+
+		// Add 'v' prefix if not present for semver.IsValid
+		versionWithV := version
+		if !strings.HasPrefix(version, "v") {
+			versionWithV = "v" + version
+		}
+
+		// Only include valid semantic versions
+		if semver.IsValid(versionWithV) {
+			versions = append(versions, version)
 		}
 	}
 
-	_ = previousTime // For future use if implementing time-based comparison
-	return previousVersion
+	if len(versions) == 0 {
+		return ""
+	}
+
+	// Sort versions by semver in ascending order
+	sort.Slice(versions, func(i, j int) bool {
+		viWithV := "v" + versions[i]
+		vjWithV := "v" + versions[j]
+		return semver.Compare(viWithV, vjWithV) < 0
+	})
+
+	// Find current version in sorted list and return the one before it
+	currentWithV := currentVersion
+	if !strings.HasPrefix(currentVersion, "v") {
+		currentWithV = "v" + currentVersion
+	}
+
+	for i := len(versions) - 1; i >= 0; i-- {
+		vWithV := "v" + versions[i]
+		if semver.Compare(vWithV, currentWithV) < 0 {
+			return versions[i]
+		}
+	}
+
+	return ""
 }
 
 func AnalyzePackage(pkg string) error {
@@ -218,7 +252,7 @@ func AnalyzePackage(pkg string) error {
 	analyzeGitConsistency(version)
 
 	// Analyze new files compared to previous version
-	previousVersion := getPreviousVersion(data.Versions, latest)
+	previousVersion := getPreviousVersion(data, latest)
 	if previousVersion != "" {
 		_, err := AnalyzeNewFiles(pkg, previousVersion, latest)
 		if err != nil {
@@ -236,7 +270,6 @@ func Run(projectName, libraryName string) {
 	// In a real implementation, this would involve checking the library against known vulnerabilities,
 	// analyzing its dependencies, and providing a risk assessment.
 
-	fmt.Println("Analyzing library:", libraryName, "in project:", projectName)
 	err := AnalyzePackage(libraryName)
 	if err != nil {
 		fmt.Printf("Error analyzing package: %v\n", err)

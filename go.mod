@@ -6,6 +6,7 @@ require (
 	github.com/cilium/ebpf v0.21.0
 	github.com/moby/moby/api v1.54.1
 	github.com/moby/moby/client v0.4.0
+	golang.org/x/mod v0.29.0
 )
 
 require (
