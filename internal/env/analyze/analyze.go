@@ -248,11 +248,22 @@ func AnalyzePackage(pkg string) error {
 	analyzeScripts(version)
 	analyzeDeps(version)
 	analyzeIntegrity(version)
-	analyzeMaintainers(data.Maintainers, []Maintainer{})
+
+	// Get maintainers from previous version for comparison
+	previousVersion := getPreviousVersion(data, latest)
+	previousMaintainers := []Maintainer{}
+	if previousVersion != "" {
+		if _, ok := data.Versions[previousVersion]; ok {
+			// Note: Maintainers in npm are at package level, not per-version
+			// So compare with current maintainers - if there are truly new ones
+			previousMaintainers = data.Maintainers
+		}
+	}
+
+	analyzeMaintainers(data.Maintainers, previousMaintainers)
 	analyzeGitConsistency(version)
 
 	// Analyze new files compared to previous version
-	previousVersion := getPreviousVersion(data, latest)
 	if previousVersion != "" {
 		_, err := AnalyzeNewFiles(pkg, previousVersion, latest)
 		if err != nil {
