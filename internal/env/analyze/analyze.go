@@ -3,6 +3,7 @@ package analyze
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -22,6 +23,13 @@ type NpmVersion struct {
 	} `json:"dist"`
 }
 
+type NpmVersionCheck struct {
+	Name        string    `json:"name"`
+	Version     string    `json:"version"`
+	Author      NpmUser   `json:"author"`
+	Maintainers []NpmUser `json:"maintainers"`
+}
+
 type Maintainer struct {
 	Name string `json:"name"`
 }
@@ -32,6 +40,11 @@ type NpmPackage struct {
 	Time        map[string]string     `json:"time"`
 	DistTags    map[string]string     `json:"dist-tags"`
 	Maintainers []Maintainer          `json:"maintainers"`
+}
+
+type NpmUser struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 func analyzeTime(pkg NpmPackage, version string) {
@@ -225,6 +238,78 @@ func getPreviousVersion(pkg NpmPackage, currentVersion string) string {
 	return ""
 }
 
+func fetchVersion(pkg, version string) (*NpmVersionCheck, error) {
+	url := fmt.Sprintf("https://registry.npmjs.org/%s/%s", pkg, version)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("request error: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("invalid status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var data NpmVersionCheck
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+
+	return &data, nil
+}
+
+func compareUsers(a, b NpmUser) bool {
+	return a.Email == b.Email && a.Name == b.Name
+}
+
+func analyzeLastVersionAuthors(pkg, previous, latest string) {
+	latestData, err := fetchVersion(pkg, latest)
+	if err != nil {
+		fmt.Println("Error fetching latest:", err)
+		return
+	}
+
+	prevData, err := fetchVersion(pkg, previous)
+	if err != nil {
+		fmt.Println("Error fetching previous:", err)
+		return
+	}
+
+	fmt.Println("\n=== npm integrity analysis ===")
+
+	// Comparação publisher / author
+	fmt.Println("\n[Author]")
+	if !compareUsers(prevData.Author, latestData.Author) {
+		fmt.Println("Warning: Author changed!")
+		fmt.Printf("Previous: %s <%s> | Latest: %s <%s>\n",
+			prevData.Author.Name, prevData.Author.Email,
+			latestData.Author.Name, latestData.Author.Email)
+	} else {
+		fmt.Println("Author: ", latestData.Author.Name, "-", latestData.Author.Email)
+		fmt.Println("OK")
+	}
+
+	// Comparação maintainers (básica)
+	fmt.Println("\n[Maintainers count]")
+	if len(prevData.Maintainers) != len(latestData.Maintainers) {
+		fmt.Println("Warning: Maintainers changed!")
+		fmt.Printf("Previous: %d | Latest: %d\n", len(prevData.Maintainers), len(latestData.Maintainers))
+	} else {
+		fmt.Println("OK")
+	}
+
+	// Version sanity check
+	//fmt.Println("\n[Version]")
+	//fmt.Printf("Prev: %s | Latest: %s\n", previous, latest)
+
+}
+
 func AnalyzePackage(pkg string) error {
 	url := fmt.Sprintf("https://registry.npmjs.org/%s", pkg)
 
@@ -275,6 +360,8 @@ func AnalyzePackage(pkg string) error {
 		if err != nil {
 			fmt.Println("Erro:", err)
 		}
+
+		analyzeLastVersionAuthors(pkg, previousVersion, latest)
 
 		_, err := AnalyzeNewFiles(pkg, previousVersion, latest)
 		if err != nil {
