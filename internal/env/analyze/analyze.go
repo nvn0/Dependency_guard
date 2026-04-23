@@ -80,7 +80,7 @@ func analyzeIntegrity(v NpmVersion) {
 	fmt.Println(" Integrity:", v.Dist.Integrity)
 
 	if v.Dist.Integrity == "" {
-		fmt.Println(" sem hash integrity")
+		fmt.Println(" no hash integrity")
 	}
 }
 
@@ -160,17 +160,19 @@ func checkGitHubTag(owner, repo, version string) {
 	}
 }
 
-func analyzeGitConsistency(v NpmVersion) {
+func analyzeGitConsistency(v NpmVersion) (string, string) {
 	owner, repo := extractGitHubRepo(v.Repository)
 
 	if owner == "" {
 		fmt.Println(" repo inválido ou ausente")
-		return
+		return "", ""
 	}
 
 	fmt.Println(" Repo:", owner+"/"+repo)
 
 	checkGitHubTag(owner, repo, v.Version)
+
+	return owner, repo
 }
 
 // getPreviousVersion finds the immediate previous version before the given version using semver
@@ -249,22 +251,31 @@ func AnalyzePackage(pkg string) error {
 	analyzeDeps(version)
 	analyzeIntegrity(version)
 
-	// Get maintainers from previous version for comparison
-	previousVersion := getPreviousVersion(data, latest)
-	previousMaintainers := []Maintainer{}
-	if previousVersion != "" {
-		if _, ok := data.Versions[previousVersion]; ok {
-			// Note: Maintainers in npm are at package level, not per-version
-			// So compare with current maintainers - if there are truly new ones
-			previousMaintainers = data.Maintainers
-		}
+	owner, repo := analyzeGitConsistency(version)
+
+	// Get maintainers from cache for previous version comparison
+	previousMaintainers, err := GetPreviousVersionMaintainers(pkg, latest)
+	if err != nil {
+		fmt.Println("\nWarning: Could not load maintainer cache: ", err)
+		previousMaintainers = []Maintainer{}
 	}
 
 	analyzeMaintainers(data.Maintainers, previousMaintainers)
-	analyzeGitConsistency(version)
+
+	// Update cache with current version
+	if err := UpdateVersionCache(pkg, latest, data.Maintainers); err != nil {
+		fmt.Printf("Warning: Could not save maintainer cache: %v\n", err)
+	}
 
 	// Analyze new files compared to previous version
+	previousVersion := getPreviousVersion(data, latest)
 	if previousVersion != "" {
+
+		err = PrintNewGithubContributors(owner, repo, previousVersion, latest)
+		if err != nil {
+			fmt.Println("Erro:", err)
+		}
+
 		_, err := AnalyzeNewFiles(pkg, previousVersion, latest)
 		if err != nil {
 			fmt.Printf("Warning: Error analyzing new files: %v\n", err)
