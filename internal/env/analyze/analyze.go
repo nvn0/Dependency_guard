@@ -238,30 +238,37 @@ func getPreviousVersion(pkg NpmPackage, currentVersion string) string {
 	return ""
 }
 
-func fetchVersion(pkg, version string) (*NpmVersionCheck, error) {
+func fetchVersion(pkg, version string) (*NpmVersionCheck, error, map[string]any) {
 	url := fmt.Sprintf("https://registry.npmjs.org/%s/%s", pkg, version)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("request error: %w", err)
+		return nil, fmt.Errorf("request error: %w", err), nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("invalid status code: %d", resp.StatusCode)
+		return nil, fmt.Errorf("invalid status code: %d", resp.StatusCode), nil
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, err, nil
 	}
 
 	var data NpmVersionCheck
 	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, err
+		return nil, err, nil
 	}
 
-	return &data, nil
+	var data2 map[string]any
+	err = json.Unmarshal(body, &data2)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err, nil
+	}
+
+	return &data, nil, data2
 }
 
 func compareUsers(a, b NpmUser) bool {
@@ -269,13 +276,16 @@ func compareUsers(a, b NpmUser) bool {
 }
 
 func analyzeLastVersionAuthors(pkg, previous, latest string) {
-	latestData, err := fetchVersion(pkg, latest)
+	latestData, err, rawdata := fetchVersion(pkg, latest)
 	if err != nil {
 		fmt.Println("Error fetching latest:", err)
 		return
 	}
 
-	prevData, err := fetchVersion(pkg, previous)
+	// Analyze raw data for author/maintainer inconsistencies
+	analyzeNpmPackageData(rawdata)
+
+	prevData, err, _ := fetchVersion(pkg, previous)
 	if err != nil {
 		fmt.Println("Error fetching previous:", err)
 		return
