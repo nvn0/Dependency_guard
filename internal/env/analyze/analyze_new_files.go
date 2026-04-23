@@ -13,9 +13,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	//"Dependency_guard/internal/docker"
 )
+
+var suspiciousExt = map[string]bool{
+	".py":   true,
+	".vbs":  true,
+	".bat":  true,
+	".exe":  true,
+	".ps1":  true,
+	".sh":   true,
+	".mond": true,
+	".cmd":  true,
+}
 
 // AnalyzeNewFiles compares two npm package versions and identifies new files
 // Returns a list of files added in the new version
@@ -51,6 +63,12 @@ func AnalyzeNewFiles(packageName, oldVersion, newVersion string) ([]string, erro
 		fmt.Printf("\n  %d new files detected:\n", len(newFilesList))
 		for _, f := range newFilesList {
 			fmt.Printf("  + %s\n", f)
+
+			ext := strings.ToLower(filepath.Ext(f))
+
+			if suspiciousExt[ext] {
+				fmt.Printf("    [!] WARNING: suspicious file extension detected: %s\n", ext)
+			}
 		}
 	} else {
 		fmt.Println(" No new files detected")
