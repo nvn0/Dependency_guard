@@ -55,12 +55,12 @@ profile nodejs-restricted flags=(attach_disconnected,mediate_deleted) {
   /var/tmp/**                   rw,
 
   # ── Node.js ───────────────────────────────────────────────────
-  /usr/lib/node_modules/        r,
-  /usr/lib/node_modules/**      r,
-  /usr/local/lib/node_modules/  r,
-  /usr/local/lib/node_modules/** r,
   /usr/local/bin/node           rix,
   /usr/bin/node                 rix,
+  /usr/lib/node_modules/        r,
+  /usr/lib/node_modules/**      mrix,
+  /usr/local/lib/node_modules/  r,
+  /usr/local/lib/node_modules/** mrix,
 
   # ── App ───────────────────────────────────────────────────────
   /app/                         r,
@@ -70,34 +70,37 @@ profile nodejs-restricted flags=(attach_disconnected,mediate_deleted) {
   /opt/                         r,
   /opt/**                       rw,
 
-  # ── Libs ──────────────────────────────────────────────────────
+ # ── Libs ──────────────────────────────────────────────────────
   /lib/                         r,
-  /lib/**                       mr,
+  /lib/**                       mrix,
   /lib64/                       r,
-  /lib64/**                     mr,
+  /lib64/**                     mrix,
   /usr/lib/                     r,
-  /usr/lib/**                   mr,
+  /usr/lib/**                   mrix,
   /usr/local/lib/               r,
-  /usr/local/lib/**             mr,
+  /usr/local/lib/**             mrix,
 
   # ── Binários ──────────────────────────────────────────────────
   /bin/                         r,
-  /bin/**                       mr,
+  /bin/**                       mrix,
   /usr/bin/                     r,
-  /usr/bin/**                   mr,
+  /usr/bin/**                   mrix,
   /usr/local/bin/               r,
-  /usr/local/bin/**             mr,
+  /usr/local/bin/**             mrix,
   /usr/sbin/                    r,
-  /usr/sbin/**                  mr,
+  /usr/sbin/**                  mrix,
+  /sbin/                        r,
+  /sbin/**                      mrix,
 
-# Shell e utilitários usados por entrypoints
+# ── Shell e utilitários de entrypoint ─────────────────────────
   /bin/sh                       rix,
   /bin/bash                     rix,
   /bin/dash                     rix,
   /usr/bin/env                  rix,
   /bin/sleep                    rix,
   /usr/bin/sleep                rix,
-
+  /bin/ls                       rix,
+  /bin/cat                      rix,
 
   # ── /etc (leitura necessária para DNS, TLS, locale) ───────────
   /etc/                         r,
