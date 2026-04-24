@@ -101,12 +101,16 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 				Image: image,
 				Cmd:   []string{"sleep", "infinity"},
 				Tty:   false,
+				//User:  "1001:1001",
 			},
 			HostConfig: &container.HostConfig{
 				ReadonlyRootfs: false, // deve ser true apenas para produção e apps que não precisam de escrita, para desenvolvimento pode ser false
 				CapDrop:        []string{"ALL"},
 				NetworkMode:    container.NetworkMode("bridge"),
 				SecurityOpt:    securityOpt,
+				Tmpfs: map[string]string{
+					"/tmp": "size=200m", // tmpfs mount to prevent writing to disk, with a size limit, removed after a stop to prevent data persistence
+				},
 			},
 			NetworkingConfig: &network.NetworkingConfig{},
 			Name:             containerName,

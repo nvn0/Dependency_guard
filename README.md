@@ -25,7 +25,7 @@ And since this tool use Docker, this creates other problems such as:
 
 ## Recommended steps:
 
-**Run:**
+**Donload project and Run:**
 
 ```
 sudo usermod -aG docker $USER
@@ -34,10 +34,22 @@ sudo usermod -aG docker $USER
 
 <br>
 
+```
+cd Dependency_guard
+```
+
+
 Install app armor profiles:
 ```
 sudo ./setup_apparmor.sh
 ```
 
+It works like a system command:
+```
+ln -s ~/Dependency_guard/Dependency_guard ~/.local/bin/safe-env
+```
 
-
+Add to .bashrc file:
+```
+export PATH="$HOME/.local/bin:$PATH"
+```
