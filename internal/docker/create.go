@@ -90,7 +90,7 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	// Build SecurityOpt with the appropriate AppArmor profile
 	securityOpt := []string{
 		"no-new-privileges",
-		"seccomp=default.json",
+		//"seccomp=default",
 		fmt.Sprintf("apparmor=%s", profileName), // or apparmor=docker-default if fallback
 	}
 
@@ -103,7 +103,7 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 				Tty:   false,
 			},
 			HostConfig: &container.HostConfig{
-				ReadonlyRootfs: true,
+				ReadonlyRootfs: true, // deve ser true apenas para produção e apps que não precisam de escrita, para desenvolvimento pode ser false
 				CapDrop:        []string{"ALL"},
 				NetworkMode:    container.NetworkMode("bridge"),
 				SecurityOpt:    securityOpt,
