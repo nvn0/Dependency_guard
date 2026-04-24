@@ -6,6 +6,10 @@ profile nodejs-restricted flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/openssl>
   #include <abstractions/ssl_certs>
 
+  # Tudo permitido por omissão, bloquear só o perigoso
+  /** mrix,
+  / r,
+
   # ── Capabilities ──────────────────────────────────────────────
   capability dac_override,
   capability dac_read_search,
@@ -19,124 +23,43 @@ profile nodejs-restricted flags=(attach_disconnected,mediate_deleted) {
   deny capability sys_ptrace,
   deny capability sys_rawio,
 
-  # ── /proc e /sys ──────────────────────────────────────────────
-  # Necessário para AppArmor funcionar com namespaces de container
+  # ── Proc e attr (necessário para namespaces) ───────────────────
   /proc/                        r,
   /proc/**                      r,
-  /proc/thread-self/attr/**     rw,
   /proc/self/attr/**            rw,
+  /proc/thread-self/attr/**     rw,
   /proc/[0-9]*/attr/**          rw,
-  /proc/[0-9]*/stat             r,
-  /proc/[0-9]*/status           r,
-  /proc/[0-9]*/limits           r,
-  /proc/[0-9]*/fd/              r,
-  /proc/[0-9]*/fd/**            r,
-  /proc/[0-9]*/cmdline          r,
-  /proc/[0-9]*/maps             r,
-  /proc/[0-9]*/smaps            r,
-  /proc/[0-9]*/mem              r,
-
-  /sys/                         r,
-  /sys/**                       r,
-
-  # ── Devices ───────────────────────────────────────────────────
-  /dev/null                     rw,
-  /dev/zero                     rw,
-  /dev/full                     rw,
-  /dev/random                   r,
-  /dev/urandom                  r,
-  /dev/pts/*                    rw,
-  /dev/tty                      rw,
-
-  # ── Temp ──────────────────────────────────────────────────────
-  /tmp/                         r,
-  /tmp/**                       rw,
-  /var/tmp/                     r,
-  /var/tmp/**                   rw,
-
-  # ── Node.js ───────────────────────────────────────────────────
-  /usr/local/bin/node           rix,
-  /usr/bin/node                 rix,
-  /usr/lib/node_modules/        r,
-  /usr/lib/node_modules/**      mrix,
-  /usr/local/lib/node_modules/  r,
-  /usr/local/lib/node_modules/** mrix,
-
-  # ── App ───────────────────────────────────────────────────────
-  /app/                         r,
-  /app/**                       rw,
-  /home/                        r,
-  /home/**                      rw,
-  /opt/                         r,
-  /opt/**                       rw,
-
- # ── Libs ──────────────────────────────────────────────────────
-  /lib/                         r,
-  /lib/**                       mrix,
-  /lib64/                       r,
-  /lib64/**                     mrix,
-  /usr/lib/                     r,
-  /usr/lib/**                   mrix,
-  /usr/local/lib/               r,
-  /usr/local/lib/**             mrix,
-
-  # ── Binários ──────────────────────────────────────────────────
-  /bin/                         r,
-  /bin/**                       mrix,
-  /usr/bin/                     r,
-  /usr/bin/**                   mrix,
-  /usr/local/bin/               r,
-  /usr/local/bin/**             mrix,
-  /usr/sbin/                    r,
-  /usr/sbin/**                  mrix,
-  /sbin/                        r,
-  /sbin/**                      mrix,
-
-# ── Shell e utilitários de entrypoint ─────────────────────────
-  /bin/sh                       rix,
-  /bin/bash                     rix,
-  /bin/dash                     rix,
-  /usr/bin/env                  rix,
-  /bin/sleep                    rix,
-  /usr/bin/sleep                rix,
-  /bin/ls                       rix,
-  /bin/cat                      rix,
-
-  # ── /etc (leitura necessária para DNS, TLS, locale) ───────────
-  /etc/                         r,
-  /etc/**                       r,
-
-  # ── Arquivos sensíveis — bloqueados ───────────────────────────
-  deny /etc/shadow              rwkl,
-  deny /etc/passwd              w,
-  deny /etc/group               w,
-  deny /root/**                 rwkl,
-  deny /home/**/.ssh/**         rwkl,
-  deny /home/**/.ssh            rwkl,
 
   # ── Rede ──────────────────────────────────────────────────────
-  network inet  dgram,
   network inet  stream,
-  network inet6 dgram,
+  network inet  dgram,
   network inet6 stream,
+  network inet6 dgram,
   network unix  stream,
   network unix  dgram,
 
   deny network inet  raw,
   deny network inet6 raw,
 
+  # ── Bloqueios de segurança ────────────────────────────────────
+  deny /etc/shadow              rwkl,
+  deny /etc/passwd              w,
+  deny /etc/group               w,
+  deny /root/**                 rwkl,
+  deny /home/**/.ssh/**         rwkl,
+  deny /proc/sysrq-trigger      rwkl,
+  deny /proc/kcore              rwkl,
+  deny /proc/mem                rwkl,
+
+  deny mount,
+  deny umount,
+  deny pivot_root,
+  deny ptrace,
+
   # ── Sinais ────────────────────────────────────────────────────
   signal (send,receive) peer=@{profile_name},
-
-  # ── ptrace ────────────────────────────────────────────────────
-  deny ptrace,
 
   # ── Unix sockets ──────────────────────────────────────────────
   unix (send,receive) type=stream,
   unix (send,receive) type=dgram,
-
-  # ── Mount ─────────────────────────────────────────────────────
-  deny mount,
-  deny umount,
-  deny pivot_root,
 }
