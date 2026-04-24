@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"golang.org/x/mod/semver"
+
+	"Dependency_guard/internal/env/utils"
 )
 
 type NpmVersion struct {
@@ -320,7 +322,7 @@ func analyzeLastVersionAuthors(pkg, previous, latest string) {
 
 }
 
-func AnalyzePackage(pkg string) error {
+func analyzePackage(pkg string) error {
 	url := fmt.Sprintf("https://registry.npmjs.org/%s", pkg)
 
 	resp, err := http.Get(url)
@@ -385,11 +387,18 @@ func AnalyzePackage(pkg string) error {
 }
 
 func Run(projectName, libraryName string) {
-	// Placeholder for actual analysis logic
-	// In a real implementation, this would involve checking the library against known vulnerabilities,
-	// analyzing its dependencies, and providing a risk assessment.
+	envType, err := utils.GetProjectEnvType(projectName)
+	if err != nil {
+		fmt.Printf("Error getting project environment type: %v\n", err)
+		return
+	}
 
-	err := AnalyzePackage(libraryName)
+	if envType != "node" {
+		fmt.Printf("Analysis currently only supports node (npm) projects. Detected environment: %s\n", envType)
+		return
+	}
+
+	err = analyzePackage(libraryName)
 	if err != nil {
 		fmt.Printf("Error analyzing package: %v\n", err)
 	}
