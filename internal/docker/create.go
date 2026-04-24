@@ -103,7 +103,7 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 				Tty:   false,
 			},
 			HostConfig: &container.HostConfig{
-				ReadonlyRootfs: true, // deve ser true apenas para produção e apps que não precisam de escrita, para desenvolvimento pode ser false
+				ReadonlyRootfs: false, // deve ser true apenas para produção e apps que não precisam de escrita, para desenvolvimento pode ser false
 				CapDrop:        []string{"ALL"},
 				NetworkMode:    container.NetworkMode("bridge"),
 				SecurityOpt:    securityOpt,
