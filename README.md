@@ -38,8 +38,11 @@ sudo usermod -aG docker $USER
 cd Dependency_guard
 ```
 
-
 Install app armor profiles:
+```
+chmod +x setup_apparmor.sh
+```
+
 ```
 sudo ./setup_apparmor.sh
 ```

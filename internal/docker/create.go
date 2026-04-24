@@ -90,8 +90,9 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	// Build SecurityOpt with the appropriate AppArmor profile
 	securityOpt := []string{
 		"no-new-privileges",
+		"apparmor=docker-default",
 		//"seccomp=default",
-		fmt.Sprintf("apparmor=%s", profileName), // or apparmor=docker-default if fallback
+		//fmt.Sprintf("apparmor=%s", profileName), // or apparmor=docker-default if fallback
 	}
 
 	resp, err := cli.ContainerCreate(
