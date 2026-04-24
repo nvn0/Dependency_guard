@@ -22,6 +22,7 @@ And since this tool use Docker, this creates other problems such as:
 
 ### The solution:
 
+...Working on it
 
 ## Recommended steps:
 
@@ -56,3 +57,18 @@ Add to .bashrc file:
 ```
 export PATH="$HOME/.local/bin:$PATH"
 ```
+
+
+# Progress
+
+
+| Feature                         | State |
+| ------------------------------- | :---: |
+| stable apparmor profile         |   ❌   |
+| user and perms in the container |   ❌   |
+| eBPF                            |   ❌   |
+| Network lockdown                |  80%  |
+| analyze libs                    |  70%  |
+| install libs                    |   ❌   |
+
+
