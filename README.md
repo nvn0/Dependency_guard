@@ -48,6 +48,11 @@ chmod +x setup_apparmor.sh
 sudo ./setup_apparmor.sh
 ```
 
+Compile:
+```
+go build
+```
+
 It works like a system command:
 ```
 ln -s ~/Dependency_guard/Dependency_guard ~/.local/bin/safe-env
