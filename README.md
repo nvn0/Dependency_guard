@@ -28,6 +28,8 @@ Yes in vscode with: `code --folder-uri vscode-remote://attached-container+<conta
 
 **Donload project and Run:**
 
+- Docker must be installed
+
 ```
 sudo usermod -aG docker $USER
 ```
@@ -48,28 +50,36 @@ chmod +x setup_apparmor.sh
 sudo ./setup_apparmor.sh
 ```
 
+<br>
+
 Compile:
 ```
 go build
 ```
 
-It works like a system command:
+<br>
+
+Add a link for the binary it works like a system command (just for you user):
 ```
 ln -s ~/Dependency_guard/Dependency_guard ~/.local/bin/safe-env
 ```
-ou para todos os utilizadores:
+
+or for all users:
 ```
 sudo ln -s ~/Dependency_guard/Dependency_guard /usr/local/bin/safe-env
 ```
-- **Note:** Important for lockdown network command.
+- **Note:** This option is better in some cases like for the lockdown network command.
+
 
 <br>
+
 
 Add to .bashrc file:
 ```
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+<br>
 
 # Progress
 
