@@ -57,6 +57,13 @@ It works like a system command:
 ```
 ln -s ~/Dependency_guard/Dependency_guard ~/.local/bin/safe-env
 ```
+ou para todos os utilizadores:
+```
+sudo ln -s ~/Dependency_guard/Dependency_guard /usr/local/bin/safe-env
+```
+- **Note:** Important for lockdown network command.
+
+<br>
 
 Add to .bashrc file:
 ```
@@ -72,7 +79,7 @@ export PATH="$HOME/.local/bin:$PATH"
 | stable apparmor profile         |   ❌   |
 | user and perms in the container |   ❌   |
 | eBPF                            |   ❌   |
-| Network lockdown                |  80%  |
+| Network lockdown                |  ✅  |
 | analyze libs                    |  70%  |
 | install libs                    |   ❌   |
 

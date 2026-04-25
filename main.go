@@ -7,6 +7,7 @@ import (
 	"Dependency_guard/internal/env"
 	"Dependency_guard/internal/env/analyze"
 	"Dependency_guard/internal/env/install"
+	"Dependency_guard/internal/security"
 )
 
 func main() {
@@ -68,6 +69,44 @@ func main() {
 		fmt.Print("ID: ")
 		env.Stop(projectName)
 
+	case "lockdown":
+		if os.Args[2] != "network" {
+			fmt.Println("usage: safe-env lockdown network")
+			return
+		}
+
+		/*
+			// solução provisória
+			// não dá pra executar auto pq é preciso sudo, e depois é o sudo nao reconhece o caminho do ~/.local/bin/safe-env
+			// era preciso criar um link simbólico em /usr/local/bin
+
+			fmt.Println("Run:")
+			fmt.Println("sudo iptables -I DOCKER-USER -i docker0 -j DROP")
+
+			fmt.Println("To deactivate, run:")
+			fmt.Println("sudo iptables -D DOCKER-USER -i docker0 -j DROP")
+
+			fmt.Println("\nOr to delete all rules:")
+			fmt.Println("sudo iptables -F DOCKER-USER")
+		*/
+
+		if len(os.Args) != 4 {
+			fmt.Println("usage: sudo safe-env lockdown network <on/off>")
+			return
+		}
+		if os.Args[3] == "on" {
+			fmt.Println("Locking down network...")
+			security.BlockAllNetworkAccess()
+
+		} else if os.Args[3] == "off" {
+			fmt.Println("Allowing network access...")
+			security.RemoveIptablesRules()
+
+		} else {
+			fmt.Println("usage: sudo safe-env lockdown network <on/off>")
+			return
+		}
+
 	case "help":
 		fmt.Println("usage:")
 		fmt.Println(" safe-env init <env-type> <project name>")
@@ -76,10 +115,10 @@ func main() {
 		fmt.Println(" safe-env analyze <project name> <library name>")
 		fmt.Println(" safe-env <project name> start")
 		fmt.Println(" safe-env <project name> stop")
-		fmt.Println(" safe-env Lockdown network")
+		fmt.Println(" sudo safe-env lockdown network")
 		fmt.Println(" safe-env help")
 
 	default:
-		fmt.Println("unknown command")
+		fmt.Println("unknown command - try 'safe-env help' for usage")
 	}
 }

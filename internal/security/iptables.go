@@ -32,7 +32,7 @@ func CreateIptablesIsolationRules() {
 func AllowNetworkAccess() {
 
 	// Remove the isolation rule
-	rule := "iptables -D DOCKER-USER -i docker0 ! -d 172.17.0.0/16 -j DROP"
+	rule := "iptables -D DOCKER-USER -i docker0 ! -d 172.17.0.0/16 -j DROP" // Block everything except docker internal network
 
 	cmd := exec.Command("sh", "-c", rule)
 	err := cmd.Run()
@@ -60,9 +60,10 @@ func AllowNetworkAccessToEndpoint(ip, port string) {
 // FULL NETWORK BLOCK
 func BlockAllNetworkAccess() {
 
-	AllowNetworkAccess() // Remove any previous rules to ensure a clean state before blocking all access
+	//AllowNetworkAccess() // Remove any previous rules to ensure a clean state before blocking all access
+	RemoveIptablesRules()
 
-	rule := "iptables -I DOCKER-USER -i docker0 -j DROP"
+	rule := "iptables -I DOCKER-USER -i docker0 -j DROP" // Block all network access from containers
 
 	cmd := exec.Command("sh", "-c", rule)
 	err := cmd.Run()
