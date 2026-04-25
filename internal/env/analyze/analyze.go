@@ -387,7 +387,7 @@ func analyzePackage(pkg string) error {
 }
 
 func Run(projectName, libraryName string) {
-	envType, err := utils.GetProjectEnvType(projectName)
+	envType, _, err := utils.GetProjectInfo(projectName)
 	if err != nil {
 		fmt.Printf("Error getting project environment type: %v\n", err)
 		return

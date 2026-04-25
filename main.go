@@ -48,10 +48,25 @@ func main() {
 		analyze.Run(projectName, libraryName)
 
 	case "start":
-		fmt.Println("Starting safe environment...")
+		if len(os.Args) != 3 {
+			fmt.Println("usage: safe-env start <project name>")
+			return
+		}
+
+		projectName := os.Args[2]
+		fmt.Println("Starting safe environment for project:", projectName)
+		fmt.Print("ID: ")
+		env.Start(projectName)
 
 	case "stop":
-		fmt.Println("Stopping safe environment...")
+		if len(os.Args) != 3 {
+			fmt.Println("usage: safe-env stop <project name>")
+			return
+		}
+		projectName := os.Args[2]
+		fmt.Println("Stopping safe environment for project:", projectName)
+		fmt.Print("ID: ")
+		env.Stop(projectName)
 
 	case "help":
 		fmt.Println("usage:")
