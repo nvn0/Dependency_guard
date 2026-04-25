@@ -84,4 +84,22 @@ profile nodejs-dev flags=(attach_disconnected,mediate_deleted) {
   # ── Unix sockets ──────────────────────────────────────────────
   unix (send,receive) type=stream,
   unix (send,receive) type=dgram,
+
+  # ── /workspace permissões totais ──────────────────────────────
+  /workspace/                   rwix,
+  /workspace/**                 rwix,
+
+  # ── /etc permissões para user management ──────────────────────
+  /etc/passwd                   rw,
+  /etc/passwd-                  rw,
+  /etc/passwd.lock              rw,
+  /etc/shadow                   rw,
+  /etc/shadow-                  rw,
+  /etc/shadow.lock              rw,
+  /etc/group                    rw,
+  /etc/group-                   rw,
+  /etc/group.lock               rw,
+  /etc/gshadow                  rw,
+  /etc/gshadow-                 rw,
+  /etc/gshadow.lock             rw,
 }

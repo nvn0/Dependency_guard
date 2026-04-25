@@ -18,7 +18,7 @@ And since this tool use Docker, this creates other problems such as:
 > Where will the Git files be located? (in the container? on the host machine?)
 
 > "Can I open the code files in my text editor if they are in the container?"
-
+Yes in vscode with: `code --folder-uri vscode-remote://attached-container+<container_id>/workspace`
 
 ### The solution:
 

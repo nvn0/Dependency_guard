@@ -102,7 +102,8 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 				Image: image,
 				Cmd:   []string{"sleep", "infinity"},
 				Tty:   false,
-				//User:  "1001:1001",
+				User:  "0:0", // Run as root inside container
+				//User: "1001:1001",
 			},
 			HostConfig: &container.HostConfig{
 				ReadonlyRootfs: false, // deve ser true apenas para produção e apps que não precisam de escrita, para desenvolvimento pode ser false
