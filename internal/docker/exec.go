@@ -6,8 +6,8 @@ import (
 )
 
 // Executa um comando dentro de um container Docker
-func ExecInContainer(container string, command []string) (string, string, error) {
-	args := append([]string{"exec", container}, command...)
+func ExecInContainer(container_id string, command []string) (string, string, error) {
+	args := append([]string{"exec", container_id}, command...)
 
 	cmd := exec.Command("docker", args...)
 

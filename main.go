@@ -36,7 +36,24 @@ func main() {
 		projectName := os.Args[2]
 		libraryName := os.Args[3]
 		fmt.Println("Installing library:", libraryName, "in project:", projectName)
-		install.Run(projectName, libraryName)
+		install.InstallLib(projectName, libraryName)
+
+	case "update":
+		if len(os.Args) != 4 {
+			fmt.Println("usage: safe-env update <project name> <library name>")
+			return
+		}
+		if os.Args[3] == "all" {
+			projectName := os.Args[2]
+			fmt.Println("Updating all libraries in project:", projectName)
+			install.UpdateAll(projectName)
+			return
+		}
+
+		projectName := os.Args[2]
+		libraryName := os.Args[3]
+		fmt.Println("Updating library:", libraryName, "in project:", projectName)
+		install.Update(projectName, libraryName)
 
 	case "analyze":
 		if len(os.Args) != 4 {
