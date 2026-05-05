@@ -10,8 +10,8 @@ specified type (Node.js, Python, Go).
 */
 
 import (
-	"Dependency_guard/internal/security"
 	"Dependency_guard/internal/docker"
+	"Dependency_guard/internal/security"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -60,9 +60,9 @@ type SecurityImmutable struct {
 
 // Integrity file struct
 type Integrityfile struct {
-	ProjectName string `json:"project_name"`
-	ContainerID string `json:"container_id"`
-	Library     string `json:"fingerprint"`
+	ProjectName string   `json:"project_name"`
+	ContainerID string   `json:"container_id"`
+	Libraries   []string `json:"libraries"`
 }
 
 // cria uma pasta dentro da home do utilizador (se não existir)
@@ -171,7 +171,7 @@ func GenerateIntegrityFile(folderPath, projectName, containerID string) {
 	integrity := Integrityfile{
 		ProjectName: projectName,
 		ContainerID: containerID,
-		Library:     "",
+		Libraries:   []string{},
 	}
 
 	integrityData, _ := json.MarshalIndent(integrity, "", "  ")
@@ -240,9 +240,9 @@ func Init(environmentType, projectName string) {
 	fmt.Println("\nProject directory created at:", project_path)
 
 	containerName := "safe-env-" + projectName
-	
+
 	// Get AppArmor profile info
 	armorProfile := security.GetAppArmorProfileForEnv(environmentType)
-	
+
 	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id, armorProfile.Name, armorProfile.InstalledPath)
 }

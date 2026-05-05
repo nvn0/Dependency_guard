@@ -49,7 +49,7 @@ type NpmUser struct {
 	Email string `json:"email"`
 }
 
-func analyzeTime(pkg NpmPackage, version string) {
+func analyzeTime(pkg NpmPackage, version string) bool {
 	t := pkg.Time[version]
 
 	parsed, _ := time.Parse(time.RFC3339, t)
@@ -59,7 +59,9 @@ func analyzeTime(pkg NpmPackage, version string) {
 
 	if age < 24*time.Hour {
 		fmt.Println(" versão muito recente (24h <) (possível risco)")
+		return true
 	}
+	return false
 }
 
 func analyzeRepo(v NpmVersion) {
@@ -322,18 +324,18 @@ func analyzeLastVersionAuthors(pkg, previous, latest string) {
 
 }
 
-func analyzePackage(pkg string) error {
+func AnalyzePackage(pkg string) (bool, error) {
 	url := fmt.Sprintf("https://registry.npmjs.org/%s", pkg)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer resp.Body.Close()
 
 	var data NpmPackage
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return err
+		return false, err
 	}
 
 	latest := data.DistTags["latest"]
@@ -342,7 +344,7 @@ func analyzePackage(pkg string) error {
 	fmt.Println(" Package:", data.Name)
 	fmt.Println(" Latest version:", latest)
 
-	analyzeTime(data, latest)
+	var new bool = analyzeTime(data, latest)
 	analyzeRepo(version)
 	analyzeScripts(version)
 	analyzeDeps(version)
@@ -383,7 +385,7 @@ func analyzePackage(pkg string) error {
 		fmt.Println("No previous version found for file comparison")
 	}
 
-	return nil
+	return new, nil
 }
 
 func Run(projectName, libraryName string) {
@@ -398,7 +400,7 @@ func Run(projectName, libraryName string) {
 		return
 	}
 
-	err = analyzePackage(libraryName)
+	_, err = AnalyzePackage(libraryName)
 	if err != nil {
 		fmt.Printf("Error analyzing package: %v\n", err)
 	}
