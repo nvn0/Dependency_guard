@@ -10,7 +10,7 @@ import (
 func InstallLib(projectName, libraryName string) {
 
 	fmt.Println("Running a scan on lib:", libraryName)
-	new, err := analyze.AnalyzePackage(libraryName)
+	new, err := analyze.AnalyzeNPMPackage(libraryName)
 	if err != nil {
 		fmt.Printf("Error analyzing package: %v\n", err)
 		return

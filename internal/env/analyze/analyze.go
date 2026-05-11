@@ -324,7 +324,7 @@ func analyzeLastVersionAuthors(pkg, previous, latest string) {
 
 }
 
-func AnalyzePackage(pkg string) (bool, error) {
+func AnalyzeNPMPackage(pkg string) (bool, error) {
 	url := fmt.Sprintf("https://registry.npmjs.org/%s", pkg)
 
 	resp, err := http.Get(url)
@@ -400,7 +400,7 @@ func Run(projectName, libraryName string) {
 		return
 	}
 
-	_, err = AnalyzePackage(libraryName)
+	_, err = AnalyzeNPMPackage(libraryName)
 	if err != nil {
 		fmt.Printf("Error analyzing package: %v\n", err)
 	}

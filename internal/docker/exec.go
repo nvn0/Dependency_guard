@@ -3,6 +3,8 @@ package docker
 import (
 	"bytes"
 	"os/exec"
+	"encoding/json"
+	"fmt"
 )
 
 // Executa um comando dentro de um container Docker
@@ -28,3 +30,31 @@ out, errOut, err := ExecInContainer("meu_container", []string{"echo", "hello"})
 		return
 	}
 */
+
+
+
+
+
+func GetInstalledNPMLibs(container_id string) ([]string, error) {
+	out, errOut, err := ExecInContainer(container_id, []string{"npm", "list", "--depth=0", "--json"})
+	if err != nil {
+		return nil, fmt.Errorf("Erro: %v, stderr: %s", err, errOut)
+	}
+
+	// Processar a saída JSON para extrair os nomes das bibliotecas
+	var result struct {
+		Dependencies map[string]interface{} `json:"dependencies"`
+	}
+
+	err = json.Unmarshal([]byte(out), &result)
+	if err != nil {
+		return nil, fmt.Errorf("Erro ao processar JSON: %v", err)
+	}
+
+	var libs []string
+	for lib := range result.Dependencies {
+		libs = append(libs, lib)
+	}
+
+	return libs, nil
+}
