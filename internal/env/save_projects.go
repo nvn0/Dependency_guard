@@ -1,5 +1,11 @@
 package env
 
+/*
+Este codigo interage com o ficheiro ~/save-env-projects/projects.txt para guardar os nomes dos projetos
+criados, verificar se um projeto já existe e listar os projetos guardados. O objetivo é manter um registo
+dos projetos criados pelo utilizador.
+*/
+
 import (
 	"fmt"
 	"os"
