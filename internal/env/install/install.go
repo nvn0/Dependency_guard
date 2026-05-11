@@ -2,9 +2,10 @@
 package install
 
 import (
+	"Dependency_guard/internal/docker"
 	"Dependency_guard/internal/env/analyze"
+	"Dependency_guard/internal/env/utils"
 	"fmt"
-	"os/exec"
 )
 
 func InstallLib(projectName, libraryName string) {
@@ -23,17 +24,20 @@ func InstallLib(projectName, libraryName string) {
 		fmt.Printf("\nInstalling library: %s\n", libraryName)
 	}
 
-	fmt.Println("Running secure install...")
-
-	cmd := exec.Command("docker", append([]string{
-		"exec",
-		"safe-env",
-	}, "npm", "install", libraryName)...)
-
-	output, err := cmd.CombinedOutput()
+	_, container_id, err := utils.GetProjectInfo(projectName)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Printf("Error getting project info: %v\n", err)
+		return
 	}
 
-	fmt.Println(string(output))
+	fmt.Println("Running secure install...")
+
+	cmd := []string{"npm", "install", libraryName}
+	out, errOut, err := docker.ExecInContainer(container_id, cmd)
+	if err != nil {
+		fmt.Printf("Error installing library %s: %v, stderr: %s\n", libraryName, err, errOut)
+	}
+	fmt.Printf("Output installing library %s: %s\n", libraryName, out)
+
+	fmt.Println(string(out))
 }

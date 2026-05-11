@@ -124,6 +124,11 @@ func main() {
 			return
 		}
 
+	case "list-projects":
+		if err := env.ListSavedProjects(); err != nil {
+			fmt.Printf("Error: %v\n", err)
+		}
+
 	case "help":
 		fmt.Println("usage:")
 		fmt.Println(" safe-env init <env-type> <project name>")
@@ -133,6 +138,7 @@ func main() {
 		fmt.Println(" safe-env <project name> start")
 		fmt.Println(" safe-env <project name> stop")
 		fmt.Println(" sudo safe-env lockdown network")
+		fmt.Println(" safe-env list-projects")
 		fmt.Println(" safe-env help")
 
 	default:

@@ -217,6 +217,17 @@ Chama a funcoes pra criar a config do apparmor e seccomp, e criar o monitorament
 ebpf (mas nao o liga).
 */
 func Init(environmentType, projectName string) {
+
+	exists, err := ProjectExists(projectName)
+	if err != nil {
+		fmt.Printf("Error checking if project name is already in use: %v\n", err)
+		return
+	}
+	if exists {
+		fmt.Printf("Project '%s' already exists. Choose another name.\n", projectName)
+		return
+	}
+
 	id, err := docker.CreateContainer(environmentType, projectName)
 	if err != nil {
 		panic(err) //erro mostra filsystem e path do projeto, para facilitar debugging, arranjar depois para erro mais generico
@@ -245,4 +256,9 @@ func Init(environmentType, projectName string) {
 	armorProfile := security.GetAppArmorProfileForEnv(environmentType)
 
 	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id, armorProfile.Name, armorProfile.InstalledPath)
+
+	// Save project name to ~/save-env-projects/projects.txt
+	if err := SaveProject(projectName); err != nil {
+		fmt.Printf("Warning: Failed to save project name: %v\n", err)
+	}
 }
