@@ -147,6 +147,7 @@ func main() {
 		fmt.Println(" safe-env init <env-type> <project name>")
 		fmt.Println(" safe-env install <project name> <library name>")
 		fmt.Println(" safe-env update <project name> <library name>")
+		fmt.Println(" safe-env update <project name> all")
 		fmt.Println(" safe-env analyze <project name> <library name>")
 		fmt.Println(" safe-env <project name> start")
 		fmt.Println(" safe-env <project name> stop")
