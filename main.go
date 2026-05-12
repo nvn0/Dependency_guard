@@ -150,7 +150,8 @@ func main() {
 		fmt.Println(" safe-env analyze <project name> <library name>")
 		fmt.Println(" safe-env <project name> start")
 		fmt.Println(" safe-env <project name> stop")
-		fmt.Println(" sudo safe-env lockdown network")
+		fmt.Println(" sudo safe-env lockdown network <on/off>")
+		fmt.Println(" safe-env connect <project name>")
 		fmt.Println(" safe-env list")
 		fmt.Println(" safe-env help")
 
