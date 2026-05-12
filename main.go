@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"Dependency_guard/internal/docker"
 	"Dependency_guard/internal/env"
 	"Dependency_guard/internal/env/analyze"
 	"Dependency_guard/internal/env/install"
@@ -129,6 +130,18 @@ func main() {
 			fmt.Printf("Error: %v\n", err)
 		}
 
+	case "connect":
+		if len(os.Args) != 3 {
+			fmt.Println("usage: safe-env connect <project name>")
+			return
+		}
+		projectName := os.Args[2]
+		fmt.Println("Connecting to safe environment for project:", projectName)
+		err := docker.ConnectToContainer(projectName)
+		if err != nil {
+			fmt.Printf("Error connecting to container: %v\n", err)
+			return
+		}
 	case "help":
 		fmt.Println("usage:")
 		fmt.Println(" safe-env init <env-type> <project name>")

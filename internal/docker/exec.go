@@ -2,9 +2,10 @@ package docker
 
 import (
 	"bytes"
-	"os/exec"
 	"encoding/json"
 	"fmt"
+	"os/exec"
+	"Dependency_guard/internal/env/utils"
 )
 
 // Executa um comando dentro de um container Docker
@@ -31,9 +32,19 @@ out, errOut, err := ExecInContainer("meu_container", []string{"echo", "hello"})
 	}
 */
 
+func ConnectToContainer(projectName string) error {
 
+	_, container_id, err := utils.GetProjectInfo(projectName)
+	if err != nil {
+		return fmt.Errorf("Error getting project container ID: %v", err)
+	}
 
-
+	_, errOut, err := ExecInContainer(container_id, []string{"docker", "exec", "-it", container_id, "/bin/bash"})
+	if err != nil {
+		return fmt.Errorf("Erro: %v, stderr: %s", err, errOut)
+	}
+	return nil
+}
 
 func GetInstalledNPMLibs(container_id string) ([]string, error) {
 	out, errOut, err := ExecInContainer(container_id, []string{"npm", "list", "--depth=0", "--json"})
