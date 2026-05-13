@@ -5,6 +5,7 @@ import (
 	"Dependency_guard/internal/env/analyze"
 	"Dependency_guard/internal/env/utils"
 	"fmt"
+	"time"
 )
 
 func Update(projectName, libraryName string) {
@@ -16,8 +17,18 @@ func Update(projectName, libraryName string) {
 		return
 	}
 
+	// Get config info from file
+	config_info, err := utils.GetConfigInfo(projectName)
+	if err != nil {
+		fmt.Printf("Error getting project config: %v\n", err)
+		return
+	}
+
+	// Get delay from config
+	var delay int = config_info.Delay
+
 	fmt.Println("Running a scan on lib:", libraryName)
-	new, err := analyze.AnalyzeNPMPackage(libraryName)
+	new, age, err := analyze.AnalyzeNPMPackage(libraryName)
 	if err != nil {
 		fmt.Printf("Error analyzing package: %v\n", err)
 		return
@@ -26,6 +37,11 @@ func Update(projectName, libraryName string) {
 	if new {
 		fmt.Printf("\nWarning: Library %s not old enough to be considered secure to update.\n", libraryName)
 		return
+
+	} else if age < time.Duration(delay)*time.Hour {
+		fmt.Printf("\nWarning: Library %s is very recent (age: %v), consider waiting before updating. The minimum delay for this project is %d hours.\n", libraryName, age, delay)
+		return
+
 	} else {
 		fmt.Printf("\nUpdating library: %s\n", libraryName)
 
@@ -47,6 +63,16 @@ func UpdateAll(projectName string) {
 		return
 	}
 
+	// Get config info from file
+	config_info, err := utils.GetConfigInfo(projectName)
+	if err != nil {
+		fmt.Printf("Error getting project config: %v\n", err)
+		return
+	}
+
+	// Get delay from config
+	var delay int = config_info.Delay
+
 	//get installed libs
 	libs, err := docker.GetInstalledNPMLibs(container_id)
 	if err != nil {
@@ -56,7 +82,7 @@ func UpdateAll(projectName string) {
 
 	// analyze each one and update if possible
 	for _, lib := range libs {
-		new, err := analyze.AnalyzeNPMPackage(lib)
+		new, age, err := analyze.AnalyzeNPMPackage(lib)
 		if err != nil {
 			fmt.Printf("Error analyzing package %s: %v\n", lib, err)
 			continue
@@ -64,6 +90,9 @@ func UpdateAll(projectName string) {
 
 		if new {
 			fmt.Printf("\nWarning: Library %s not old enough to be considered secure to update.\n", lib)
+			continue
+		} else if age < time.Duration(delay)*time.Hour {
+			fmt.Printf("\nWarning: Library %s is very recent (age: %v), consider waiting before updating. The minimum delay for this project is %d hours.\n", lib, age, delay)
 			continue
 		} else {
 			fmt.Printf("\nUpdating library: %s\n", lib)

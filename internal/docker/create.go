@@ -67,7 +67,8 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	defer cli.Close()
 
 	image := getImageForType(environmentType)
-	containerName := "safe-env-" + projectName
+	//containerName := "safe-env-" + projectName
+	var containerName string = projectName
 
 	// Pull image if it doesn't exist locally
 	err = pullImage(cli, image)

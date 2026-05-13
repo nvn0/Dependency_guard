@@ -15,6 +15,11 @@ type ProjectInfo struct {
 	CreatedAt       string `json:"timestamp"`
 }
 
+type ConfigInfo struct {
+	Delay     int      `json:"delay_hours"`
+	Whitelist []string `json:"whitelist"`
+}
+
 func GetProjectInfo(projectName string) (string, string, error) {
 
 	home, err := os.UserHomeDir()
@@ -62,5 +67,50 @@ func GetProjectInfo(projectName string) (string, string, error) {
 	var containerID string = project.ContainerID
 
 	return envType, containerID, nil
+}
+
+func GetConfigInfo(projectName string) (ConfigInfo, error) {
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ConfigInfo{}, err
+	}
+
+	var config_file string = fmt.Sprintf("%s_config.json", projectName)
+
+	//verify safe-env-projects folder exists
+	safeEnvProjectsPath := filepath.Join(home, "safe-env-projects")
+	if _, err := os.Stat(safeEnvProjectsPath); os.IsNotExist(err) {
+		return ConfigInfo{}, fmt.Errorf("safe-env-projects folder does not exist: %s", safeEnvProjectsPath)
+	}
+
+	//verify project folder exists
+	projectPath := filepath.Join(home, "safe-env-projects", projectName)
+	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+		return ConfigInfo{}, fmt.Errorf("Error: Verify project name - project folder does not exist: %s", projectPath)
+	}
+
+	path := filepath.Join(home, "safe-env-projects", projectName, config_file)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return ConfigInfo{}, fmt.Errorf("config file does not exist: %s", path)
+	}
+
+	// Ler ficheiro
+	data, err := os.ReadFile(path)
+	if err != nil {
+		//panic(err)
+		return ConfigInfo{}, fmt.Errorf("could not read config file: %v", err)
+	}
+
+	// Variável onde vai ser guardado
+	var config ConfigInfo
+
+	// Converter JSON -> struct
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		return ConfigInfo{}, fmt.Errorf("could not unmarshal config file: %v", err)
+	}
+
+	return config, nil
 
 }
