@@ -52,7 +52,7 @@ func Update(projectName, libraryName string) {
 			return
 		}
 
-		cmd := []string{"cd", "/workspace", "&&", "npm", "update", libraryName}
+		cmd := []string{"sh", "-c", "cd /workspace && npm update " + libraryName}
 		out, errOut, err := docker.ExecInContainer(container_id, cmd)
 		if err != nil {
 			fmt.Printf("Error updating library %s: %v, stderr: %s\n", libraryName, err, errOut)
@@ -111,7 +111,7 @@ func UpdateAll(projectName string) {
 				return
 			}
 
-			cmd := []string{"cd", "/workspace", "&&", "npm", "update", lib}
+			cmd := []string{"sh", "-c", "cd /workspace && npm update " + lib}
 			out, errOut, err := docker.ExecInContainer(container_id, cmd)
 			if err != nil {
 				fmt.Printf("Error updating library %s: %v, stderr: %s\n", lib, err, errOut)

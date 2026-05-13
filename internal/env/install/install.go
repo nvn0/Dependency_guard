@@ -53,7 +53,7 @@ func InstallLib(projectName, libraryName string) {
 		return
 	}
 
-	cmd2 := []string{"cd", "/workspace", "&&", "npm", "install", libraryName}
+	cmd2 := []string{"sh", "-c", "cd /workspace && npm install " + libraryName}
 	out2, errOut2, err2 := docker.ExecInContainer(container_id, cmd2)
 	if err2 != nil {
 		fmt.Printf("Error installing library %s: %v, stderr: %s\n", libraryName, err2, errOut2)
