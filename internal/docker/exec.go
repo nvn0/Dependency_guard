@@ -52,7 +52,7 @@ func ConnectToContainer(projectName string) error {
 }
 
 func GetInstalledNPMLibs(container_id string) ([]string, error) {
-	out, errOut, err := ExecInContainer(container_id, []string{"npm", "list", "--depth=0", "--json"})
+	out, errOut, err := ExecInContainer(container_id, []string{"sh", "-c", "cd /workspace && npm list --depth=0 --json"})
 	if err != nil {
 		return nil, fmt.Errorf("Erro: %v, stderr: %s", err, errOut)
 	}
