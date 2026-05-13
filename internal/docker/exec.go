@@ -1,11 +1,12 @@
 package docker
 
 import (
+	"Dependency_guard/internal/env/utils"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
-	"Dependency_guard/internal/env/utils"
 )
 
 // Executa um comando dentro de um container Docker
@@ -39,11 +40,15 @@ func ConnectToContainer(projectName string) error {
 		return fmt.Errorf("Error getting project container ID: %v", err)
 	}
 
-	_, errOut, err := ExecInContainer(container_id, []string{"docker", "exec", "-it", container_id, "/bin/bash"})
-	if err != nil {
-		return fmt.Errorf("Erro: %v, stderr: %s", err, errOut)
-	}
-	return nil
+	// Usar exec.Command diretamente para suportar -it
+	cmd := exec.Command("docker", "exec", "-it", container_id, "/bin/bash")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	//cmd.Run()
+
+	return cmd.Run()
 }
 
 func GetInstalledNPMLibs(container_id string) ([]string, error) {
