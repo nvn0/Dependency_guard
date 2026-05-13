@@ -46,12 +46,19 @@ func InstallLib(projectName, libraryName string) {
 
 	fmt.Println("Running secure install...")
 
-	cmd := []string{"npm", "install", libraryName}
-	out, errOut, err := docker.ExecInContainer(container_id, cmd)
-	if err != nil {
-		fmt.Printf("Error installing library %s: %v, stderr: %s\n", libraryName, err, errOut)
+	cmd1 := []string{"mkdir", "-p", "/workspace"}
+	_, errOut1, err1 := docker.ExecInContainer(container_id, cmd1)
+	if err1 != nil {
+		fmt.Printf("Error creating workspace directory: %v, stderr: %s\n", err1, errOut1)
+		return
 	}
-	fmt.Printf("Output installing library %s: %s\n", libraryName, out)
 
-	fmt.Println(string(out))
+	cmd2 := []string{"cd", "/workspace", "&&", "npm", "install", libraryName}
+	out2, errOut2, err2 := docker.ExecInContainer(container_id, cmd2)
+	if err2 != nil {
+		fmt.Printf("Error installing library %s: %v, stderr: %s\n", libraryName, err2, errOut2)
+	}
+	fmt.Printf("Output installing library %s: %s\n", libraryName, out2)
+
+	fmt.Println(string(out2))
 }

@@ -45,7 +45,14 @@ func Update(projectName, libraryName string) {
 	} else {
 		fmt.Printf("\nUpdating library: %s\n", libraryName)
 
-		cmd := []string{"npm", "update", libraryName}
+		cmd1 := []string{"mkdir", "-p", "/workspace"}
+		_, errOut1, err1 := docker.ExecInContainer(container_id, cmd1)
+		if err1 != nil {
+			fmt.Printf("Error creating workspace directory: %v, stderr: %s\n", err1, errOut1)
+			return
+		}
+
+		cmd := []string{"cd", "/workspace", "&&", "npm", "update", libraryName}
 		out, errOut, err := docker.ExecInContainer(container_id, cmd)
 		if err != nil {
 			fmt.Printf("Error updating library %s: %v, stderr: %s\n", libraryName, err, errOut)
@@ -96,7 +103,15 @@ func UpdateAll(projectName string) {
 			continue
 		} else {
 			fmt.Printf("\nUpdating library: %s\n", lib)
-			cmd := []string{"npm", "update", lib}
+
+			cmd1 := []string{"mkdir", "-p", "/workspace"}
+			_, errOut1, err1 := docker.ExecInContainer(container_id, cmd1)
+			if err1 != nil {
+				fmt.Printf("Error creating workspace directory: %v, stderr: %s\n", err1, errOut1)
+				return
+			}
+
+			cmd := []string{"cd", "/workspace", "&&", "npm", "update", lib}
 			out, errOut, err := docker.ExecInContainer(container_id, cmd)
 			if err != nil {
 				fmt.Printf("Error updating library %s: %v, stderr: %s\n", lib, err, errOut)
