@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	SaveProjectsDir  = "save-env-projects"
+	SaveProjectsDir  = "safe-env-projects"
 	ProjectsFileName = "projects.txt"
 )
 

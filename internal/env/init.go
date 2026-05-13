@@ -250,14 +250,15 @@ func Init(environmentType, projectName string) {
 
 	fmt.Println("\nProject directory created at:", project_path)
 
-	containerName := "safe-env-" + projectName
+	//containerName := "safe-env-" + projectName
+	var containerName string = projectName
 
 	// Get AppArmor profile info
 	armorProfile := security.GetAppArmorProfileForEnv(environmentType)
 
 	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id, armorProfile.Name, armorProfile.InstalledPath)
 
-	// Save project name to ~/save-env-projects/projects.txt
+	// Save project name to ~/safe-env-projects/projects.txt
 	if err := SaveProject(projectName); err != nil {
 		fmt.Printf("Warning: Failed to save project name: %v\n", err)
 	}
