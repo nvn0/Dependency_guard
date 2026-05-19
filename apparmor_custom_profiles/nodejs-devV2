@@ -1,0 +1,181 @@
+#include <tunables/global>
+
+# Perfil para containers de desenvolvimento Node.js/npm
+# Base: docker-default, com permissões adicionais apenas onde necessário
+profile nodejs-dev flags=(attach_disconnected,mediate_deleted) {
+
+  # ── Abstrações base ───────────────────────────────────────────
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+  #include <abstractions/openssl>
+  #include <abstractions/ssl_certs>
+
+  # ── Rede ──────────────────────────────────────────────────────
+  # Necessário para npm install, node servers, etc.
+  network inet  stream,
+  network inet  dgram,
+  network inet6 stream,
+  network inet6 dgram,
+  network unix  stream,
+  network unix  dgram,
+
+  # Raw sockets bloqueados (não são necessários para dev)
+  deny network inet  raw,
+  deny network inet6 raw,
+
+  # ── Capabilities ──────────────────────────────────────────────
+  # Permite apenas o mínimo para que node/npm funcionem corretamente
+  capability chown,           # chown em ficheiros gerados (npm)
+  capability dac_override,    # acesso a ficheiros do sistema durante install
+  capability dac_read_search, # leitura de dirs durante resolução de paths
+  capability fowner,          # operações de ownership em /workspace
+  capability setgid,          # necessário para scripts de setup
+  capability setuid,          # necessário para scripts de setup
+  capability net_bind_service, # bind em portas < 1024 (e.g. porta 80 em dev)
+
+  # Capabilities perigosas — todas bloqueadas
+  deny capability sys_admin,
+  deny capability sys_module,
+  deny capability sys_ptrace,
+  deny capability sys_rawio,
+  deny capability sys_boot,
+  deny capability sys_time,
+  deny capability sys_nice,
+  deny capability net_admin,
+  deny capability net_raw,
+  deny capability mknod,
+  deny capability setfcap,    # impede escalar capabilities
+
+  # ── Filesystem ────────────────────────────────────────────────
+
+  # Sistema de ficheiros base (leitura)
+  /                             r,
+  /**                           r,
+
+  # Bibliotecas e binários do sistema (só execução + leitura)
+  /lib/**                       mrix,
+  /lib64/**                     mrix,
+  /usr/lib/**                   mrix,
+  /usr/local/lib/**             mrix,
+  /bin/**                       mrix,
+  /usr/bin/**                   mrix,
+  /usr/local/bin/**             mrix,
+  /usr/sbin/**                  ix,
+  /sbin/**                      ix,
+
+  # /tmp — leitura/escrita, sem execução
+  # (npm usa /tmp durante installs)
+  /tmp/                         rw,
+  /tmp/**                       rw,
+
+  # Home do utilizador dentro do container
+  /root/                        rw,
+  /root/**                      rw,
+  /home/                        r,
+  /home/**                      rw,
+
+  # npm/node caches e configurações globais
+  /usr/local/lib/node_modules/  rw,
+  /usr/local/lib/node_modules/** rwix,
+  /usr/local/share/.config/     rw,
+  /usr/local/share/.config/**   rw,
+
+  # ── /workspace — permissões totais ───────────────────────────
+  # Aqui vive todo o código; precisa de rwx para compilar, correr, etc.
+  /workspace/                   rwix,
+  /workspace/**                 rwix,
+
+  # ── /proc — restrito como no docker-default ───────────────────
+  /proc/                        r,
+  /proc/[0-9]*/                 r,
+  /proc/[0-9]*/fd/              r,
+  /proc/[0-9]*/fdinfo/          r,
+  /proc/[0-9]*/mountinfo        r,
+  /proc/[0-9]*/net/             r,
+  /proc/[0-9]*/net/**           r,
+  /proc/[0-9]*/status           r,
+  /proc/[0-9]*/stat             r,
+  /proc/[0-9]*/cmdline          r,
+  /proc/[0-9]*/maps             r,
+  /proc/[0-9]*/smaps            r,
+  /proc/[0-9]*/mem              r,
+  /proc/sys/                    r,
+  /proc/sys/kernel/shm*         rw,  # node usa shm
+  /proc/sys/net/**              r,
+  /proc/sys/vm/overcommit_memory r,  # node verifica isto no arranque
+
+  # Bloqueios explícitos em /proc (igual ao docker-default)
+  deny @{PROC}/*                w,
+  deny @{PROC}/sys/[^k]**       w,
+  deny @{PROC}/sys/kernel/{?,??,[^s][^h][^m]**} w,
+  deny @{PROC}/sysrq-trigger    rwklx,
+  deny @{PROC}/kcore            rwklx,
+  deny @{PROC}/mem              rwklx,
+  deny @{PROC}/kmem             rwklx,
+
+  # ── /sys — maioritariamente bloqueado ────────────────────────
+  /sys/                         r,
+  /sys/fs/cgroup/               r,
+  /sys/fs/cgroup/**             r,   # cgroups necessários para node
+  deny /sys/[^f]*/**            wklx,
+  deny /sys/f[^s]*/**           wklx,
+  deny /sys/fs/[^c]*/**         wklx,
+  deny /sys/fs/c[^g]*/**        wklx,
+  deny /sys/fs/cg[^r]*/**       wklx,
+  deny /sys/firmware/**         rwklx,
+  deny /sys/devices/virtual/powercap/** rwklx,
+  deny /sys/kernel/security/**  rwklx,
+
+  # ── Devices ───────────────────────────────────────────────────
+  /dev/null                     rw,
+  /dev/zero                     rw,
+  /dev/full                     rw,
+  /dev/random                   r,
+  /dev/urandom                  r,
+  /dev/pts/*                    rw,
+  /dev/tty                      rw,
+
+  # ── /etc — só leitura, exceto o necessário para o container ──
+  /etc/                         r,
+  /etc/**                       r,
+
+  # Escrita em /etc bloqueada — especialmente ficheiros sensíveis
+  deny /etc/passwd              w,
+  deny /etc/passwd-             w,
+  deny /etc/shadow              rwklx,
+  deny /etc/shadow-             rwklx,
+  deny /etc/gshadow             rwklx,
+  deny /etc/gshadow-            rwklx,
+  deny /etc/group               w,
+
+  # ── Montagem e operações de kernel — bloqueadas ───────────────
+  deny mount,
+  deny umount,
+  deny pivot_root,
+  deny ptrace,
+
+  # ── Sinais ────────────────────────────────────────────────────
+  # Processos do host (dockerd/runc) podem enviar sinais
+  signal (receive) peer=unconfined,
+  # Processos dentro do container comunicam entre si
+  signal (send,receive) peer=@{profile_name},
+
+  # ── Unix sockets ──────────────────────────────────────────────
+  unix (send,receive) type=stream,
+  unix (send,receive) type=dgram,
+
+# ── Allow SSH ──────────────────────────────────────────────
+
+# SSH keys
+/root/.ssh/                   r,
+/root/.ssh/**                 r,
+
+# ssh-agent socket
+/run/ssh-agent.sock           rw,
+/tmp/ssh-*/                   rw,
+/tmp/ssh-*/**                 rw,
+
+# known_hosts escrita
+/root/.ssh/known_hosts        rw,
+/root/.ssh/known_hosts.lock   rw,
+}

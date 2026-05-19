@@ -56,7 +56,7 @@ func StartContainer(id string) error {
 		return fmt.Errorf("erro ao ligar container %s: %w", id, err)
 	}
 	//fmt.Printf("Container %s ligado\n", id)
-	fmt.Println("Container ligado\n")
+	fmt.Println("Container ligado")
 	return nil
 }
 
@@ -70,6 +70,6 @@ func StopContainer(id string) error {
 		return fmt.Errorf("erro ao desligar container %s: %w", id, err)
 	}
 	//fmt.Printf("Container %s desligado\n", id)
-	fmt.Println("Container desligado\n")
+	fmt.Println("Container desligado")
 	return nil
 }
