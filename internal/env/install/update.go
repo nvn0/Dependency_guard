@@ -25,7 +25,7 @@ func Update(projectName, libraryName string) {
 	}
 
 	// Get delay from config
-	var delay int = config_info.Delay
+	var delay int = config_info.Install.Delay
 
 	fmt.Println("Running a scan on lib:", libraryName)
 	new, age, err := analyze.AnalyzeNPMPackage(libraryName)
@@ -78,7 +78,7 @@ func UpdateAll(projectName string) {
 	}
 
 	// Get delay from config
-	var delay int = config_info.Delay
+	var delay int = config_info.Install.Delay
 
 	//get installed libs
 	libs, err := docker.GetInstalledNPMLibs(container_id)

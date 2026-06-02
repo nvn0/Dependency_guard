@@ -16,8 +16,16 @@ type ProjectInfo struct {
 }
 
 type ConfigInfo struct {
-	Delay     int      `json:"delay_hours"`
-	Whitelist []string `json:"whitelist"`
+	Install struct {
+		AllowScripts bool `json:"allow_scripts"`
+		Delay        int  `json:"delay_hours"`
+	} `json:"install"`
+	Network bool `json:"network"`
+	Ebpf    struct {
+		Enabled   bool     `json:"enabled"`
+		Whitelist []string `json:"whitelist"`
+		DenyPaths []string `json:"deny_paths"`
+	} `json:"ebpf"`
 }
 
 func GetProjectInfo(projectName string) (string, string, error) {
@@ -105,11 +113,30 @@ func GetConfigInfo(projectName string) (ConfigInfo, error) {
 	// Variável onde vai ser guardado
 	var config ConfigInfo
 
+	//debug
+	//fmt.Printf("Config file content:\n%s\n", string(data))
+
+	// Debug: Parse como map genérico para ver a estrutura real
+	/*
+		var rawData map[string]interface{}
+		err = json.Unmarshal(data, &rawData)
+		if err != nil {
+			return ConfigInfo{}, fmt.Errorf("could not unmarshal as map: %v", err)
+		}
+		fmt.Printf("Raw JSON structure: %+v\n", rawData)
+		for key, value := range rawData {
+			fmt.Printf("  Key: '%s', Value: %v (type: %T)\n", key, value, value)
+		}
+	*/
+
 	// Converter JSON -> struct
 	err = json.Unmarshal(data, &config)
 	if err != nil {
 		return ConfigInfo{}, fmt.Errorf("could not unmarshal config file: %v", err)
 	}
+
+	//debug
+	//fmt.Printf("Parsed Config: %+v\n", config)
 
 	return config, nil
 

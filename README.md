@@ -87,10 +87,10 @@ export PATH="$HOME/.local/bin:$PATH"
 | Feature                         | State |
 | ------------------------------- | :---: |
 | stable apparmor profile         |   ❌   |
-| user and perms in the container |   ❌   |
+| user and perms in the container |   ✅   |
 | eBPF                            |   ❌   |
 | Network lockdown                |  ✅  |
-| analyze libs                    |  70%  |
-| install libs                    |   ❌   |
+| analyze libs                    |  90%  |
+| install libs                    |   ✅   |
 
 

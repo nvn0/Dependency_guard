@@ -20,7 +20,9 @@ func getImageForType(envType string) string {
 	switch envType {
 	case "node":
 		//return "node:20"
-		return "node:20-slim"
+		//return "node:20-slim"
+		//return "node:trixie"
+		return "node:trixie-slim"
 	case "python":
 		//return "python:3.11"
 		return "python:3.12-slim"

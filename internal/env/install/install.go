@@ -26,7 +26,7 @@ func InstallLib(projectName, libraryName string) {
 	}
 
 	// Get delay from config
-	var delay int = config_info.Delay
+	var delay int = config_info.Install.Delay
 
 	if new {
 		fmt.Printf("\nWarning: Library %s not old enough to be considered secure to install.\n", libraryName)
@@ -45,6 +45,7 @@ func InstallLib(projectName, libraryName string) {
 	}
 
 	fmt.Println("Running secure install...")
+	fmt.Println("Install Delay configured up:", delay, "hours")
 
 	cmd1 := []string{"mkdir", "-p", "/workspace"}
 	_, errOut1, err1 := docker.ExecInContainer(container_id, cmd1)

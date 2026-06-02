@@ -91,7 +91,7 @@ func ListSavedProjects() error {
 	data, err := os.ReadFile(projectsFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("No projects saved yet")
+			fmt.Println("No projects created yet")
 			return nil
 		}
 		return fmt.Errorf("failed to read file %s: %v", projectsFilePath, err)
@@ -99,11 +99,11 @@ func ListSavedProjects() error {
 
 	content := strings.TrimSpace(string(data))
 	if content == "" {
-		fmt.Println("No projects saved yet")
+		fmt.Println("No projects created yet")
 		return nil
 	}
 
-	fmt.Println("Saved projects:")
+	fmt.Println("Created projects:")
 	for i, line := range strings.Split(content, "\n") {
 		if trimmed := strings.TrimSpace(line); trimmed != "" {
 			fmt.Printf("%d. %s\n", i+1, trimmed)
