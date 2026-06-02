@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 type ProjectInfo struct {
@@ -75,6 +77,29 @@ func GetProjectInfo(projectName string) (string, string, error) {
 	var containerID string = project.ContainerID
 
 	return envType, containerID, nil
+}
+
+func GetContainerIP(containerID string) (string, error) {
+	// Execute: docker inspect <containerID> | grep IPAddress
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("docker inspect %s | grep '\"IPAddress\"'", containerID))
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("could not get container IP: %v", err)
+	}
+
+	// Parse output: "IPAddress": "172.17.0.2",
+	line := strings.TrimSpace(string(output))
+	parts := strings.Split(line, "\"")
+	if len(parts) < 4 {
+		return "", fmt.Errorf("could not parse IP address from: %s", line)
+	}
+
+	ip := parts[3]
+	if ip == "" {
+		return "", fmt.Errorf("empty IP address")
+	}
+
+	return ip, nil
 }
 
 func GetConfigInfo(projectName string) (ConfigInfo, error) {

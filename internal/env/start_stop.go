@@ -26,6 +26,15 @@ func Start(projectName string) {
 		fmt.Printf("Error creating workspace directory: %v, stderr: %s\n", err1, errOut1)
 		return
 	}
+
+	container_ip, err := utils.GetContainerIP(container_id)
+	if err != nil {
+		fmt.Printf("Error getting container IP: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Container started with IP: %s\n", container_ip)
+
 }
 
 func Stop(projectName string) {
