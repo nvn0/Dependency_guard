@@ -2,7 +2,7 @@
 
 # Perfil para containers de desenvolvimento Node.js/npm
 # Base: docker-default, com permissões adicionais apenas onde necessário
-profile nodejs-dev flags=(attach_disconnected,mediate_deleted) {
+profile nodejs-devV2 flags=(attach_disconnected,mediate_deleted) {
 
   # ── Abstrações base ───────────────────────────────────────────
   #include <abstractions/base>
@@ -32,6 +32,7 @@ profile nodejs-dev flags=(attach_disconnected,mediate_deleted) {
   capability setgid,          # necessário para scripts de setup
   capability setuid,          # necessário para scripts de setup
   capability net_bind_service, # bind em portas < 1024 (e.g. porta 80 em dev)
+
 
   # Capabilities perigosas — todas bloqueadas
   deny capability sys_admin,
@@ -178,4 +179,31 @@ profile nodejs-dev flags=(attach_disconnected,mediate_deleted) {
 # known_hosts escrita
 /root/.ssh/known_hosts        rw,
 /root/.ssh/known_hosts.lock   rw,
+
+
+
+
+
+# Permitir apt
+
+# ── apt/dpkg ──────────────────────────────────────────────────
+  /var/lib/apt/                 rw,
+  /var/lib/apt/**               rwlk,
+  /var/cache/apt/               rw,
+  /var/cache/apt/**             rw,
+  /var/log/apt/                 rw,
+  /var/log/apt/**               rw,
+  /var/lib/dpkg/                rw,
+  /var/lib/dpkg/**              rwixlk,
+  /var/lib/dpkg/info/           rw,
+  /var/lib/dpkg/info/**         rwix,
+  /var/log/dpkg.log             rw,
+  /var/cache/debconf/           rw,
+  /var/cache/debconf/**         rw,
+  /var/lib/dpkg/lock            rwk,
+  /var/lib/dpkg/lock-frontend   rwk,
+  /var/lib/apt/lists/lock       rwk,
+  /run/lock/                    rw,
+  /run/lock/**                  rwk,
+
 }

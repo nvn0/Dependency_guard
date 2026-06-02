@@ -1,55 +1,161 @@
 // internal/docker/docker.go
 package docker
 
-// This file contains the logic for onlycreating Docker containers for secure development environments with the bests configs.
+// This file contains the logic for only creating Docker containers for secure development environments with the best configs.
 
 import (
+	"archive/tar"
 	"Dependency_guard/internal/security"
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
-	client "github.com/moby/moby/client" // go get github.com/moby/moby/client
+	client "github.com/moby/moby/client"
 )
 
-// getImageForType returns the appropriate Docker image based on the environment type.
-// Debian-based slim images are used to minimize attack surface while still providing necessary tools for development.
-func getImageForType(envType string) string {
+// getDockerfileForType returns the path to the appropriate Dockerfile based on the environment type.
+func getDockerfileForType(envType string) (string, error) {
+	projectRoot, err := getProjectRoot()
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("Project root:", projectRoot)
+
+	dockerfileName := ""
 	switch envType {
 	case "node":
-		//return "node:20"
-		//return "node:20-slim"
-		//return "node:trixie"
-		return "node:trixie-slim"
+		dockerfileName = "custom_image_nodeV2.dockerfile"
 	case "python":
-		//return "python:3.11"
-		return "python:3.12-slim"
+		dockerfileName = "custom_image_python.dockerfile"
 	case "go":
-		return "golang:1.21"
+		dockerfileName = "custom_image_go.dockerfile"
 	default:
-		return "debian:bookworm-slim"
+		dockerfileName = "custom_image_nodeV2.dockerfile"
+	}
+
+	return filepath.Join(projectRoot, "internal", "docker", "dockerfiles", dockerfileName), nil
+}
+
+// getImageNameForType returns the image name for tagging
+func getImageNameForType(envType string) string {
+	switch envType {
+	case "node":
+		return "dependency-guard:node-custom"
+	case "python":
+		return "dependency-guard:python-custom"
+	case "go":
+		return "dependency-guard:go-custom"
+	default:
+		return "dependency-guard:custom"
 	}
 }
 
-// pullImage pulls the Docker image from registry if it doesn't exist locally
-func pullImage(cli *client.Client, imageName string) error {
-	fmt.Printf("Pulling image: %s\n", imageName)
-
-	response, err := cli.ImagePull(context.Background(), imageName, client.ImagePullOptions{})
+func getProjectRoot() (string, error) {
+	exePath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to pull image %s: %v", imageName, err)
-	}
-	defer response.Close()
-
-	// Consume the response to wait for pull to complete
-	_, err = io.Copy(io.Discard, response)
-	if err != nil {
-		return fmt.Errorf("error reading pull response: %v", err)
+		return "", fmt.Errorf("could not get executable path: %v", err)
 	}
 
-	fmt.Printf("\nImage %s pulled successfully\n", imageName)
+	// Resolver symlink se existir
+	realPath, err := filepath.EvalSymlinks(exePath)
+	if err != nil {
+		realPath = exePath // Se não conseguir resolver, usar o path como está
+	}
+
+	return filepath.Dir(realPath), nil
+}
+
+// createTarStream cria um tar stream do diretório para o build context
+func createTarStream(sourceDir string) (io.Reader, error) {
+	pr, pw := io.Pipe()
+
+	go func() {
+		defer pw.Close()
+		tw := tar.NewWriter(pw)
+		defer tw.Close()
+
+		// Walk through all files in the directory
+		err := filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			// Get relative path for the tar header
+			relPath, err := filepath.Rel(sourceDir, path)
+			if err != nil {
+				return err
+			}
+
+			// Create tar header
+			header, err := tar.FileInfoHeader(info, relPath)
+			if err != nil {
+				return err
+			}
+			header.Name = relPath
+
+			if err := tw.WriteHeader(header); err != nil {
+				return err
+			}
+
+			// If file, write content
+			if !info.IsDir() {
+				file, err := os.Open(path)
+				if err != nil {
+					return err
+				}
+				defer file.Close()
+
+				if _, err := io.Copy(tw, file); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			pw.CloseWithError(err)
+		}
+	}()
+
+	return pr, nil
+}
+
+// buildImage builds a Docker image from the specified Dockerfile
+func buildImage(cli *client.Client, dockerfilePath, imageName string) error {
+	fmt.Printf("Building image: %s from %s\n", imageName, dockerfilePath)
+
+	// Get the directory containing the Dockerfile (build context)
+	buildContextPath := filepath.Dir(dockerfilePath)
+
+	// Create tar stream from the build context directory
+	tarStream, err := createTarStream(buildContextPath)
+	if err != nil {
+		fmt.Printf("\nError creating tar stream: %v\n", err)
+		return fmt.Errorf("failed to create tar stream: %v", err)
+	}
+
+	response, err := cli.ImageBuild(context.Background(), tarStream, client.ImageBuildOptions{
+		Dockerfile: filepath.Base(dockerfilePath),
+		Tags:       []string{imageName},
+	})
+	if err != nil {
+		fmt.Printf("\nError building image: %v\n", err)
+		return fmt.Errorf("failed to build image: %v", err)
+	}
+	defer response.Body.Close()
+
+	// Consume the response to wait for build to complete
+	_, err = io.Copy(io.Discard, response.Body)
+	if err != nil {
+		return fmt.Errorf("error reading build response: %v", err)
+	}
+
+	fmt.Printf("\nImage %s built successfully\n", imageName)
 	return nil
 }
 
@@ -68,14 +174,18 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	}
 	defer cli.Close()
 
-	image := getImageForType(environmentType)
-	//containerName := "safe-env-" + projectName
+	dockerfilePath, err := getDockerfileForType(environmentType)
+	if err != nil {
+		fmt.Printf("\nError getting dockerfile path: %v\n", err)
+		return "", err
+	}
+	imageName := getImageNameForType(environmentType)
 	var containerName string = projectName
 
-	// Pull image if it doesn't exist locally
-	err = pullImage(cli, image)
+	// Build image from Dockerfile
+	err = buildImage(cli, dockerfilePath, imageName)
 	if err != nil {
-		fmt.Printf("\nError pulling image: %v\n", err)
+		fmt.Printf("\nError building image: %v\n", err)
 		return "", err
 	}
 
@@ -93,16 +203,16 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	// Build SecurityOpt with the appropriate AppArmor profile
 	securityOpt := []string{
 		"no-new-privileges",
-		//"apparmor=docker-default",
+		"apparmor=docker-default",
 		//"seccomp=default",
-		fmt.Sprintf("apparmor=%s", profileName), // or apparmor=docker-default if fallback
+		//fmt.Sprintf("apparmor=%s", profileName), // or apparmor=docker-default if fallback
 	}
 
 	resp, err := cli.ContainerCreate(
 		context.Background(),
 		client.ContainerCreateOptions{
 			Config: &container.Config{
-				Image: image,
+				Image: imageName,
 				Cmd:   []string{"sleep", "infinity"},
 				Tty:   false,
 				User:  "0:0", // Run as root inside container

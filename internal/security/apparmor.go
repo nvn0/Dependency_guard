@@ -17,9 +17,9 @@ func GetAppArmorProfileForEnv(envType string) AppArmorProfile {
 	switch envType {
 	case "node":
 		return AppArmorProfile{
-			Name:          "nodejs-dev",
-			InstalledPath: "/etc/apparmor.d/nodejs-dev",
-			LocalPath:     "apparmor_custom_profiles/nodejs-dev",
+			Name:          "nodejs-devV2",
+			InstalledPath: "/etc/apparmor.d/nodejs-devV2",
+			LocalPath:     "apparmor_custom_profiles/nodejs-devV2",
 		}
 	case "python":
 		return AppArmorProfile{
