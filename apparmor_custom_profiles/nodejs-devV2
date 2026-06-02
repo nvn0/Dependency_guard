@@ -183,27 +183,4 @@ profile nodejs-devV2 flags=(attach_disconnected,mediate_deleted) {
 
 
 
-
-# Permitir apt
-
-# ── apt/dpkg ──────────────────────────────────────────────────
-  /var/lib/apt/                 rw,
-  /var/lib/apt/**               rwlk,
-  /var/cache/apt/               rw,
-  /var/cache/apt/**             rw,
-  /var/log/apt/                 rw,
-  /var/log/apt/**               rw,
-  /var/lib/dpkg/                rw,
-  /var/lib/dpkg/**              rwixlk,
-  /var/lib/dpkg/info/           rw,
-  /var/lib/dpkg/info/**         rwix,
-  /var/log/dpkg.log             rw,
-  /var/cache/debconf/           rw,
-  /var/cache/debconf/**         rw,
-  /var/lib/dpkg/lock            rwk,
-  /var/lib/dpkg/lock-frontend   rwk,
-  /var/lib/apt/lists/lock       rwk,
-  /run/lock/                    rw,
-  /run/lock/**                  rwk,
-
 }

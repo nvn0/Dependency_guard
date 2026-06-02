@@ -1,4 +1,4 @@
-FROM node:20-bookworm
+FROM debian:bookworm-slim
 RUN apt update && apt install -y \
     nano \
     git \

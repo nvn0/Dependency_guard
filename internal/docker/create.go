@@ -28,7 +28,7 @@ func getDockerfileForType(envType string) (string, error) {
 	dockerfileName := ""
 	switch envType {
 	case "node":
-		dockerfileName = "custom_image_nodeV2.dockerfile"
+		dockerfileName = "custom_image_node.dockerfile"
 	case "python":
 		dockerfileName = "custom_image_python.dockerfile"
 	case "go":
