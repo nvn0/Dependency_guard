@@ -102,6 +102,24 @@ func GetContainerIP(containerID string) (string, error) {
 	return ip, nil
 }
 
+// GetContainerPID gets the PID of a Docker container using docker inspect
+func GetContainerPID(containerID string) (string, error) {
+	// Executar: docker inspect -f '{{.State.Pid}}' <containerID>
+	cmd := exec.Command("docker", "inspect", "-f", "{{.State.Pid}}", containerID)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("could not get container PID: %v", err)
+	}
+
+	// Parse output and trim whitespace
+	pid := strings.TrimSpace(string(output))
+	if pid == "" || pid == "0" {
+		return "", fmt.Errorf("container %s is not running or has no PID", containerID)
+	}
+
+	return pid, nil
+}
+
 func GetConfigInfo(projectName string) (ConfigInfo, error) {
 
 	home, err := os.UserHomeDir()

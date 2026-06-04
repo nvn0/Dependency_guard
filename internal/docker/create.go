@@ -34,7 +34,7 @@ func getDockerfileForType(envType string) (string, error) {
 	case "go":
 		dockerfileName = "custom_image_go.dockerfile"
 	default:
-		dockerfileName = "custom_image_nodeV2.dockerfile"
+		dockerfileName = "custom_image_default.dockerfile"
 	}
 
 	return filepath.Join(projectRoot, "internal", "docker", "dockerfiles", dockerfileName), nil

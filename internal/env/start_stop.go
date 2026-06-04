@@ -33,6 +33,14 @@ func Start(projectName string) {
 		return
 	}
 
+	container_pid, err := utils.GetContainerPID(container_id)
+	if err != nil {
+		fmt.Printf("Error getting container PID: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Container started with PID: %s\n", container_pid)
+
 	fmt.Printf("Container started with IP: %s\n", container_ip)
 
 }
