@@ -1,7 +1,12 @@
 # Dependency_guard
 CLI tool to create, install and update dependencies from npm (and others) in a safely way.
 
-Automatically creates docker containers for the project.
+Automatically creates docker containers each project.
+
+**Requirements:**
+- Use a Debian based distro
+- Install Docker: https://docs.docker.com/engine/install/debian/
+
 
 **Important:** This tool is supposed to create a secure development environment, not a production environment. 
 
