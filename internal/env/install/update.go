@@ -80,6 +80,9 @@ func UpdateAll(projectName string) {
 	// Get delay from config
 	var delay int = config_info.Install.Delay
 
+	// Get allow_scripts from config
+	var allowScripts bool = config_info.Install.AllowScripts
+
 	//get installed libs
 	libs, err := docker.GetInstalledNPMLibs(container_id)
 	if err != nil {
@@ -111,7 +114,15 @@ func UpdateAll(projectName string) {
 				return
 			}
 
-			cmd := []string{"sh", "-c", "cd /workspace && npm update " + lib}
+			var update_cmd string
+			if allowScripts {
+				update_cmd = "cd /workspace && npm update " + lib
+			} else {
+				update_cmd = "cd /workspace && npm update --ignore-scripts " + lib
+			}
+
+			cmd := []string{"sh", "-c", update_cmd}
+
 			out, errOut, err := docker.ExecInContainer(container_id, cmd)
 			if err != nil {
 				fmt.Printf("Error updating library %s: %v, stderr: %s\n", lib, err, errOut)
