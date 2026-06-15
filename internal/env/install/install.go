@@ -28,6 +28,9 @@ func InstallLib(projectName, libraryName string) {
 	// Get delay from config
 	var delay int = config_info.Install.Delay
 
+	// Get allow_scripts from config
+	var allowScripts bool = config_info.Install.AllowScripts
+
 	if new {
 		fmt.Printf("\nWarning: Library %s not old enough to be considered secure to install.\n", libraryName)
 		return
@@ -54,7 +57,15 @@ func InstallLib(projectName, libraryName string) {
 		return
 	}
 
-	cmd2 := []string{"sh", "-c", "cd /workspace && npm install " + libraryName}
+	var install_cmd string
+	if allowScripts {
+		install_cmd = "cd /workspace && npm install " + libraryName
+	} else {
+		install_cmd = "cd /workspace && npm install --ignore-scripts " + libraryName
+	}
+
+	cmd2 := []string{"sh", "-c", install_cmd}
+
 	out2, errOut2, err2 := docker.ExecInContainer(container_id, cmd2)
 	if err2 != nil {
 		fmt.Printf("Error installing library %s: %v, stderr: %s\n", libraryName, err2, errOut2)
