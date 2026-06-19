@@ -49,6 +49,7 @@ type NpmUser struct {
 	Email string `json:"email"`
 }
 
+// Verificar a data de publicação da versão mais recente e alertar se for muito recente (ex: < 24h)
 func analyzeTime(pkg NpmPackage, version string) (bool, time.Duration) {
 	t := pkg.Time[version]
 
@@ -89,12 +90,12 @@ func analyzeDeps(v NpmVersion) {
 	}
 
 	if len(v.Dependencies) > 20 {
-		fmt.Println(" demasiadas dependências")
+		fmt.Println("\n-> Package Dependencies count: High")
 	}
 }
 
 func analyzeIntegrity(v NpmVersion) {
-	fmt.Println(" Integrity:", v.Dist.Integrity)
+	fmt.Println(" \nIntegrity:", v.Dist.Integrity)
 
 	if v.Dist.Integrity == "" {
 		fmt.Println(" no hash integrity")
@@ -338,9 +339,10 @@ func AnalyzeNPMPackage(pkg string) (bool, time.Duration, error) {
 		return false, 0, err
 	}
 
-	latest := data.DistTags["latest"]
-	version := data.Versions[latest]
+	latest := data.DistTags["latest"] // Get the latest version from dist-tags
+	version := data.Versions[latest]  // Get the NpmVersion for the latest version
 
+	fmt.Println("\n======== npm package analysis ======== ")
 	fmt.Println(" Package:", data.Name)
 	fmt.Println(" Latest version:", latest)
 

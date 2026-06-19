@@ -39,7 +39,7 @@ func Update(projectName, libraryName string) {
 		return
 
 	} else if age < time.Duration(delay)*time.Hour {
-		fmt.Printf("\nWarning: Library %s is very recent (age: %v), consider waiting before updating. The minimum delay for this project is %d hours.\n", libraryName, age, delay)
+		fmt.Printf("\nWarning: Library %s is very recent (age: %d hours), consider waiting before updating. The minimum delay for this project is %d hours.\n", libraryName, int(age.Round(time.Hour).Hours()), delay)
 		return
 
 	} else {
@@ -90,6 +90,10 @@ func UpdateAll(projectName string) {
 		return
 	}
 
+	for _, lib := range libs {
+		fmt.Printf("Library found in project %s: %s\n", projectName, lib)
+	}
+
 	// analyze each one and update if possible
 	for _, lib := range libs {
 		new, age, err := analyze.AnalyzeNPMPackage(lib)
@@ -99,10 +103,10 @@ func UpdateAll(projectName string) {
 		}
 
 		if new {
-			fmt.Printf("\nWarning: Library %s not old enough to be considered secure to update.\n", lib)
+			fmt.Printf("\nWarning: Library %s not old enough to be considered secure to update.\n", lib) // less than 24h
 			continue
 		} else if age < time.Duration(delay)*time.Hour {
-			fmt.Printf("\nWarning: Library %s is very recent (age: %v), consider waiting before updating. The minimum delay for this project is %d hours.\n", lib, age, delay)
+			fmt.Printf("\nWarning: Library %s is very recent (age: %d hours), consider waiting before updating. The minimum delay for this project is %d hours.\n", lib, int(age.Round(time.Hour).Hours()), delay)
 			continue
 		} else {
 			fmt.Printf("\nUpdating library: %s\n", lib)

@@ -35,7 +35,7 @@ func InstallLib(projectName, libraryName string) {
 		fmt.Printf("\nWarning: Library %s not old enough to be considered secure to install.\n", libraryName)
 		return
 	} else if age < time.Duration(delay)*time.Hour {
-		fmt.Printf("\nWarning: Library %s is very recent (age: %v), consider waiting before installing. The minimum delay for this project is %d hours.\n", libraryName, age, delay)
+		fmt.Printf("\nWarning: Library %s is very recent (age: %d hours), consider waiting before installing. The minimum delay for this project is %d hours.\n", libraryName, int(age.Round(time.Hour).Hours()), delay)
 		return
 	} else {
 		fmt.Printf("\nInstalling library: %s\n", libraryName)

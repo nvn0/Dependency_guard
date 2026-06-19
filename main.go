@@ -46,7 +46,7 @@ func main() {
 		}
 		if os.Args[3] == "all" {
 			projectName := os.Args[2]
-			fmt.Println("Updating all libraries in project:", projectName)
+			//fmt.Println("Updating all libraries in project:", projectName)
 			install.UpdateAll(projectName)
 			return
 		}
