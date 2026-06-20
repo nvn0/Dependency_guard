@@ -21,6 +21,12 @@ func GetAppArmorProfileForEnv(envType string) AppArmorProfile {
 			InstalledPath: "/etc/apparmor.d/nodejs-devV2",
 			LocalPath:     "apparmor_custom_profiles/nodejs-devV2",
 		}
+	case "node-alpine":
+		return AppArmorProfile{
+			Name:          "docker-default",
+			InstalledPath: "",
+			LocalPath:     "",
+		}
 	case "python":
 		return AppArmorProfile{
 			Name:          "docker-default",
