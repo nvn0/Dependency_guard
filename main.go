@@ -22,7 +22,7 @@ func main() {
 	case "init":
 		if len(os.Args) != 4 {
 			fmt.Println("usage: safe-env init <env-type> <project name>")
-			fmt.Println("env-type: node, python, go")
+			fmt.Println("env-type: node, node-alpine, python, go")
 			return
 		}
 		environmentType := os.Args[2]

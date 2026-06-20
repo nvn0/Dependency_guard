@@ -4,8 +4,8 @@ package docker
 // This file contains the logic for only creating Docker containers for secure development environments with the best configs.
 
 import (
-	"archive/tar"
 	"Dependency_guard/internal/security"
+	"archive/tar"
 	"context"
 	"fmt"
 	"io"
@@ -29,6 +29,8 @@ func getDockerfileForType(envType string) (string, error) {
 	switch envType {
 	case "node":
 		dockerfileName = "custom_image_node.dockerfile"
+	case "node-alpine":
+		dockerfileName = "custom_image_node_alpine.dockerfile"
 	case "python":
 		dockerfileName = "custom_image_python.dockerfile"
 	case "go":
@@ -45,6 +47,8 @@ func getImageNameForType(envType string) string {
 	switch envType {
 	case "node":
 		return "dependency-guard:node-custom"
+	case "node-alpine":
+		return "dependency-guard:node-alpine-custom"
 	case "python":
 		return "dependency-guard:python-custom"
 	case "go":
@@ -161,9 +165,9 @@ func buildImage(cli *client.Client, dockerfilePath, imageName string) error {
 
 func CreateContainer(environmentType, projectName string) (string, error) {
 	// Validate environment type
-	validTypes := map[string]bool{"node": true, "python": true, "go": true}
+	validTypes := map[string]bool{"node": true, "node-alpine": true, "python": true, "go": true}
 	if !validTypes[environmentType] {
-		fmt.Printf("\nInvalid environment type: %s. Valid options: node, python, go\n", environmentType)
+		fmt.Printf("\nInvalid environment type: %s. Valid options: node, node-alpine, python, go\n", environmentType)
 		return "", fmt.Errorf("invalid environment type: %s", environmentType)
 	}
 
@@ -204,7 +208,7 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	securityOpt := []string{
 		"no-new-privileges",
 		"apparmor=docker-default",
-		//"seccomp=default",
+		//"seccomp=default", // causa erro, usar o default do Docker que já é seguro, ou seja, não especificar seccomp
 		//fmt.Sprintf("apparmor=%s", profileName), // or apparmor=docker-default if fallback
 	}
 

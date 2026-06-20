@@ -35,20 +35,31 @@ out, errOut, err := ExecInContainer("meu_container", []string{"echo", "hello"})
 
 func ConnectToContainer(projectName string) error {
 
-	_, container_id, err := utils.GetProjectInfo(projectName)
+	envType, container_id, err := utils.GetProjectInfo(projectName)
 	if err != nil {
 		return fmt.Errorf("Error getting project container ID: %v", err)
 	}
 
-	// Usar exec.Command diretamente para suportar -it
-	cmd := exec.Command("docker", "exec", "-it", container_id, "/bin/bash")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	if envType == "node-alpine" {
+		fmt.Println("Connecting to container:", container_id, "with shell: /bin/sh")
+		cmd := exec.Command("docker", "exec", "-it", container_id, "/bin/sh")
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 
-	//cmd.Run()
+		return cmd.Run()
+	} else {
 
-	return cmd.Run()
+		// Usar exec.Command diretamente para suportar -it
+		cmd := exec.Command("docker", "exec", "-it", container_id, "/bin/bash")
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		//cmd.Run()
+
+		return cmd.Run()
+	}
 }
 
 func GetInstalledNPMLibs(container_id string) ([]string, error) {
