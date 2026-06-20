@@ -11,9 +11,15 @@ import (
 func Update(projectName, libraryName string) {
 	fmt.Printf("Updating library: %s in project: %s\n", libraryName, projectName)
 
-	_, container_id, err := utils.GetProjectInfo(projectName)
+	envType, container_id, err := utils.GetProjectInfo(projectName)
 	if err != nil {
 		fmt.Printf("Error getting project info: %v\n", err)
+		return
+	}
+
+	// temp config
+	if envType != "node" && envType != "node-alpine" {
+		fmt.Println("Update currently only supports node (npm) projects. Detected environment: " + envType)
 		return
 	}
 
@@ -64,9 +70,14 @@ func Update(projectName, libraryName string) {
 func UpdateAll(projectName string) {
 	fmt.Printf("Updating all libraries in project: %s\n", projectName)
 
-	_, container_id, err := utils.GetProjectInfo(projectName)
+	envType, container_id, err := utils.GetProjectInfo(projectName)
 	if err != nil {
 		fmt.Printf("Error getting project info: %v\n", err)
+		return
+	}
+
+	if envType != "node" && envType != "node-alpine" {
+		fmt.Println("Update currently only supports node (npm) projects. Detected environment: " + envType)
 		return
 	}
 

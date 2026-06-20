@@ -53,7 +53,7 @@ func main() {
 
 		projectName := os.Args[2]
 		libraryName := os.Args[3]
-		fmt.Println("Updating library:", libraryName, "in project:", projectName)
+		//fmt.Println("Updating library:", libraryName, "in project:", projectName)
 		install.Update(projectName, libraryName)
 
 	case "analyze":

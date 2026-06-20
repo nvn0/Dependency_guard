@@ -9,19 +9,19 @@ import (
 	"time"
 )
 
-func InstallLib(projectName, libraryName string) {
-
-	fmt.Println("Running a scan on lib:", libraryName)
-	new, age, err := analyze.AnalyzeNPMPackage(libraryName)
-	if err != nil {
-		fmt.Printf("Error analyzing package: %v\n", err)
-		return
-	}
+func InstallNPMLib(projectName, libraryName, container_id string) {
 
 	// Get config info from file
 	config_info, err := utils.GetConfigInfo(projectName)
 	if err != nil {
 		fmt.Printf("Error getting project config: %v\n", err)
+		return
+	}
+
+	fmt.Println("Running a scan on lib:", libraryName)
+	new, age, err := analyze.AnalyzeNPMPackage(libraryName)
+	if err != nil {
+		fmt.Printf("Error analyzing package: %v\n", err)
 		return
 	}
 
@@ -39,12 +39,6 @@ func InstallLib(projectName, libraryName string) {
 		return
 	} else {
 		fmt.Printf("\nInstalling library: %s\n", libraryName)
-	}
-
-	_, container_id, err := utils.GetProjectInfo(projectName)
-	if err != nil {
-		fmt.Printf("Error getting project info: %v\n", err)
-		return
 	}
 
 	fmt.Println("Running secure install...")
@@ -73,4 +67,20 @@ func InstallLib(projectName, libraryName string) {
 	fmt.Printf("Output installing library %s: %s\n", libraryName, out2)
 
 	fmt.Println(string(out2))
+}
+
+func InstallLib(projectName, libraryName string) {
+
+	envType, container_id, err := utils.GetProjectInfo(projectName)
+	if err != nil {
+		fmt.Printf("Error getting project info: %v\n", err)
+		return
+	}
+
+	if envType == "node" || envType == "node-alpine" {
+		InstallNPMLib(projectName, libraryName, container_id)
+	} else {
+		fmt.Println("Install currently only supports node (npm) projects. Detected environment: " + envType)
+	}
+
 }
