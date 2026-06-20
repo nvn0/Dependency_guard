@@ -6,6 +6,6 @@ RUN apk update && apk add --no-cache \
     && npm install -g npm@latest \
     && npm config set allow-remote none \
     && npm config set allow-git none
-    
+WORKDIR /workspace
 
 

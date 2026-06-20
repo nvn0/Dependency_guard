@@ -6,5 +6,5 @@ RUN apt update && apt install -y \
     && npm install -g npm@latest \
     && npm config set allow-remote none \
     && npm config set allow-git none
-
+WORKDIR /workspace
 

@@ -1,11 +1,6 @@
-FROM golang:1.21-alpine
-
-# Create non-root user and group for better security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-# Set up workspace with proper permissions
+FROM golang:1.25-alpine
+RUN apt update && apt install -y \
+    nano \
+    git \
+    && rm -rf /var/lib/apt/lists/* \
 WORKDIR /workspace
-RUN chown -R appuser:appgroup /workspace
-
-# Switch to non-root user
-USER appuser

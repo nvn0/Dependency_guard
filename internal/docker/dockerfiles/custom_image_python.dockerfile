@@ -1,11 +1,6 @@
-FROM python:3.12-slim
-
-# Create non-root user and group for better security
-RUN addgroup --system appgroup && adduser --system appuser --group appgroup
-
-# Set up workspace with proper permissions
+FROM python:3.13-slim
+RUN apt update && apt install -y \
+    nano \
+    git \
+    && rm -rf /var/lib/apt/lists/* \
 WORKDIR /workspace
-RUN chown -R appuser:appgroup /workspace
-
-# Switch to non-root user
-USER appuser
