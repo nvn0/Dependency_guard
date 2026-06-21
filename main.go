@@ -142,6 +142,15 @@ func main() {
 			fmt.Printf("Error connecting to container: %v\n", err)
 			return
 		}
+
+	case "monitor":
+		if len(os.Args) != 3 {
+			fmt.Println("usage: sudo safe-env monitor <project name>")
+			return
+		}
+		projectName := os.Args[2]
+		env.Monitor(projectName)
+
 	case "help":
 		fmt.Println("usage:")
 		fmt.Println(" safe-env init <env-type> <project name>")
@@ -153,6 +162,7 @@ func main() {
 		fmt.Println(" safe-env stop <project name>")
 		fmt.Println(" sudo safe-env lockdown network <on/off>")
 		fmt.Println(" safe-env connect <project name>")
+		fmt.Println(" sudo safe-env monitor <project name>")
 		fmt.Println(" safe-env list")
 		fmt.Println(" safe-env help")
 
