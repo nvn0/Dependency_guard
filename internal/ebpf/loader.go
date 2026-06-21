@@ -6,6 +6,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	cebpf "github.com/cilium/ebpf"
@@ -51,7 +54,7 @@ type Monitor struct {
 }
 
 func StartMonitor(ctx context.Context, cfg MonitorConfig) (*Monitor, error) {
-	if cfg.ContainerPID < 0 {
+	if cfg.ContainerPID <= 0 {
 		return nil, fmt.Errorf("invalid container PID: %d", cfg.ContainerPID)
 	}
 
@@ -69,7 +72,7 @@ func StartMonitor(ctx context.Context, cfg MonitorConfig) (*Monitor, error) {
 		collection.Close()
 	}
 
-	if err := setTargetPID(collection, uint32(cfg.ContainerPID)); err != nil {
+	if err := setTargetCgroup(collection, cfg.ContainerPID); err != nil {
 		cleanup()
 		return nil, err
 	}
@@ -169,18 +172,56 @@ func (m *Monitor) readEvents(ctx context.Context) {
 	}
 }
 
-func setTargetPID(collection *cebpf.Collection, pid uint32) error {
-	targetMap := collection.Maps["target_pid"]
+func setTargetCgroup(collection *cebpf.Collection, pid int) error {
+	targetMap := collection.Maps["target_cgroup"]
 	if targetMap == nil {
-		return errors.New("eBPF map target_pid not found")
+		return errors.New("eBPF map target_cgroup not found")
 	}
 
+	cgroupPath, err := containerCgroupPath(pid)
+	if err != nil {
+		return err
+	}
+
+	cgroup, err := os.Open(cgroupPath)
+	if err != nil {
+		return fmt.Errorf("open container cgroup %s: %w", cgroupPath, err)
+	}
+	defer cgroup.Close()
+
 	var key uint32
-	if err := targetMap.Put(key, pid); err != nil {
-		return fmt.Errorf("set eBPF target PID: %w", err)
+	fd := uint32(cgroup.Fd())
+	if err := targetMap.Put(key, fd); err != nil {
+		return fmt.Errorf("set eBPF target cgroup %s: %w", cgroupPath, err)
 	}
 
 	return nil
+}
+
+func containerCgroupPath(pid int) (string, error) {
+	procPath := fmt.Sprintf("/proc/%d/cgroup", pid)
+	contents, err := os.ReadFile(procPath)
+	if err != nil {
+		return "", fmt.Errorf("read container cgroup for PID %d: %w", pid, err)
+	}
+
+	relativePath, err := parseCgroupV2Path(string(contents))
+	if err != nil {
+		return "", fmt.Errorf("resolve container cgroup for PID %d: %w", pid, err)
+	}
+
+	return filepath.Join("/sys/fs/cgroup", strings.TrimPrefix(relativePath, "/")), nil
+}
+
+func parseCgroupV2Path(contents string) (string, error) {
+	for _, line := range strings.Split(contents, "\n") {
+		parts := strings.SplitN(line, ":", 3)
+		if len(parts) == 3 && parts[0] == "0" && parts[1] == "" && parts[2] != "" {
+			return parts[2], nil
+		}
+	}
+
+	return "", errors.New("cgroup v2 entry not found; a unified cgroup v2 hierarchy is required")
 }
 
 func attachTracepoints(collection *cebpf.Collection) ([]link.Link, error) {

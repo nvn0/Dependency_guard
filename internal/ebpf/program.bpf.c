@@ -33,14 +33,18 @@ typedef __u32 __wsum;
 #define BPF_MAP_TYPE_ARRAY 2
 #endif
 
+#ifndef BPF_MAP_TYPE_CGROUP_ARRAY
+#define BPF_MAP_TYPE_CGROUP_ARRAY 8
+#endif
+
 #ifndef BPF_MAP_TYPE_RINGBUF
 #define BPF_MAP_TYPE_RINGBUF 27
 #endif
 
-static void *(*bpf_map_lookup_elem)(void *map, const void *key) = (void *)1;
 static __u64 (*bpf_get_current_pid_tgid)(void) = (void *)14;
 static __u64 (*bpf_get_current_uid_gid)(void) = (void *)15;
 static long (*bpf_get_current_comm)(void *buf, __u32 size_of_buf) = (void *)16;
+static long (*bpf_current_task_under_cgroup)(void *map, __u32 index) = (void *)37;
 static long (*bpf_probe_read_user_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *)114;
 static void *(*bpf_ringbuf_reserve)(void *ringbuf, __u64 size, __u64 flags) = (void *)131;
 static void (*bpf_ringbuf_submit)(void *data, __u64 flags) = (void *)132;
@@ -72,28 +76,15 @@ struct {
 } events SEC(".maps");
 
 struct {
-	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(type, BPF_MAP_TYPE_CGROUP_ARRAY);
 	__uint(max_entries, 1);
 	__type(key, __u32);
 	__type(value, __u32);
-} target_pid SEC(".maps");
+} target_cgroup SEC(".maps");
 
 static __always_inline int should_trace_current_process(void)
 {
-	__u32 key = 0;
-	__u32 *target;
-	__u64 pid_tgid;
-	__u32 tgid;
-
-	target = bpf_map_lookup_elem(&target_pid, &key);
-	if (!target || *target == 0) {
-		return 1;
-	}
-
-	pid_tgid = bpf_get_current_pid_tgid();
-	tgid = pid_tgid >> 32;
-
-	return tgid == *target;
+	return bpf_current_task_under_cgroup(&target_cgroup, 0) == 1;
 }
 
 static __always_inline struct event *reserve_event(__u32 type)

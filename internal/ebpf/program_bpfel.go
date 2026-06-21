@@ -63,8 +63,8 @@ type programProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type programMapSpecs struct {
-	Events    *ebpf.MapSpec `ebpf:"events"`
-	TargetPid *ebpf.MapSpec `ebpf:"target_pid"`
+	Events       *ebpf.MapSpec `ebpf:"events"`
+	TargetCgroup *ebpf.MapSpec `ebpf:"target_cgroup"`
 }
 
 // programVariableSpecs contains global variables before they are loaded into the kernel.
@@ -93,14 +93,14 @@ func (o *programObjects) Close() error {
 //
 // It can be passed to loadProgramObjects or ebpf.CollectionSpec.LoadAndAssign.
 type programMaps struct {
-	Events    *ebpf.Map `ebpf:"events"`
-	TargetPid *ebpf.Map `ebpf:"target_pid"`
+	Events       *ebpf.Map `ebpf:"events"`
+	TargetCgroup *ebpf.Map `ebpf:"target_cgroup"`
 }
 
 func (m *programMaps) Close() error {
 	return _ProgramClose(
 		m.Events,
-		m.TargetPid,
+		m.TargetCgroup,
 	)
 }
 
