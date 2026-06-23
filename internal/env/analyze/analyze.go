@@ -14,6 +14,14 @@ import (
 	"Dependency_guard/internal/env/utils"
 )
 
+const (
+	Reset  = "\033[0m"
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+	Blue   = "\033[34m"
+)
+
 type NpmVersion struct {
 	Version      string            `json:"version"`
 	Dependencies map[string]string `json:"dependencies"`
@@ -59,7 +67,7 @@ func analyzeTime(pkg NpmPackage, version string) (bool, time.Duration) {
 	fmt.Println(" Published:", t)
 
 	if age < 24*time.Hour {
-		fmt.Println(" versão muito recente (24h <) (possível risco)")
+		fmt.Println(" \033[1;31m versão muito recente (24h <) (possível risco)\033[0m")
 		return true, age
 	}
 	return false, age
@@ -90,7 +98,7 @@ func analyzeDeps(v NpmVersion) {
 	}
 
 	if len(v.Dependencies) > 20 {
-		fmt.Println("\n-> Package Dependencies count: High")
+		fmt.Println("\n " + Yellow + "+ -> Package Dependencies count: High" + Reset)
 	}
 }
 
@@ -98,14 +106,14 @@ func analyzeIntegrity(v NpmVersion) {
 	fmt.Println(" \nIntegrity:", v.Dist.Integrity)
 
 	if v.Dist.Integrity == "" {
-		fmt.Println(" no hash integrity")
+		fmt.Println(" " + Yellow + "no hash integrity" + Reset)
 	}
 }
 
 func diffDeps(old, new map[string]string) {
 	for dep := range new {
 		if _, ok := old[dep]; !ok {
-			fmt.Println(" new dependency:", dep)
+			fmt.Println(" "+Yellow+"-> new dependency:"+Reset, dep)
 		}
 	}
 }
@@ -119,7 +127,7 @@ func analyzeMaintainers(current, previous []Maintainer) {
 
 	for _, m := range current {
 		if !prevMap[m.Name] {
-			fmt.Println(" new maintainer:", m.Name)
+			fmt.Println(" "+Yellow+"+ -> new maintainer:"+Reset, m.Name)
 		}
 	}
 }

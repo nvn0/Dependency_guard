@@ -60,18 +60,18 @@ func AnalyzeNewFiles(packageName, oldVersion, newVersion string) ([]string, erro
 	newFilesList := diffFiles(oldFiles, newFiles)
 
 	if len(newFilesList) > 0 {
-		fmt.Printf("\n  %d new files detected:\n", len(newFilesList))
+		fmt.Printf("\n "+Yellow+"%d new files detected:"+Reset+"\n", len(newFilesList))
 		for _, f := range newFilesList {
 			fmt.Printf("  + %s\n", f)
 
 			ext := strings.ToLower(filepath.Ext(f))
 
 			if suspiciousExt[ext] {
-				fmt.Printf("    [!] WARNING: suspicious file extension detected: %s\n", ext)
+				fmt.Printf("\033[1;31m   [!] WARNING: suspicious file extension detected:\033[0m %s\n", ext)
 			}
 		}
 	} else {
-		fmt.Println(" No new files detected")
+		fmt.Println(Green + " No new files detected" + Reset)
 	}
 
 	return newFilesList, nil
