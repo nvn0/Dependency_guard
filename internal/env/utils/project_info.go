@@ -30,9 +30,21 @@ type ConfigInfo struct {
 	} `json:"ebpf"`
 }
 
+// GetHomeDir returns the home directory, detecting if running with sudo
+func GetHomeDir() (string, error) {
+	// Check if running with sudo
+	sudoUser := os.Getenv("SUDO_USER")
+	if sudoUser != "" {
+		return filepath.Join("/home", sudoUser), nil
+	}
+
+	// Otherwise use the current user's home directory
+	return os.UserHomeDir()
+}
+
 func GetProjectInfo(projectName string) (string, string, error) {
 
-	home, err := os.UserHomeDir()
+	home, err := GetHomeDir()
 	if err != nil {
 		return "", "", err
 	}
@@ -122,7 +134,7 @@ func GetContainerPID(containerID string) (string, error) {
 
 func GetConfigInfo(projectName string) (ConfigInfo, error) {
 
-	home, err := os.UserHomeDir()
+	home, err := GetHomeDir()
 	if err != nil {
 		return ConfigInfo{}, err
 	}
