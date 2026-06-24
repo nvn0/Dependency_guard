@@ -8,9 +8,15 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"structs"
 
 	"github.com/cilium/ebpf"
 )
+
+type programIpv6Address struct {
+	_     structs.HostLayout
+	Words [4]uint32
+}
 
 // loadProgram returns the embedded CollectionSpec for program.
 func loadProgram() (*ebpf.CollectionSpec, error) {
@@ -54,15 +60,21 @@ type programSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type programProgramSpecs struct {
-	TraceConnect *ebpf.ProgramSpec `ebpf:"trace_connect"`
-	TraceExecve  *ebpf.ProgramSpec `ebpf:"trace_execve"`
-	TraceOpenat  *ebpf.ProgramSpec `ebpf:"trace_openat"`
+	EnforceConnect4 *ebpf.ProgramSpec `ebpf:"enforce_connect4"`
+	EnforceConnect6 *ebpf.ProgramSpec `ebpf:"enforce_connect6"`
+	EnforceSendmsg4 *ebpf.ProgramSpec `ebpf:"enforce_sendmsg4"`
+	EnforceSendmsg6 *ebpf.ProgramSpec `ebpf:"enforce_sendmsg6"`
+	TraceConnect    *ebpf.ProgramSpec `ebpf:"trace_connect"`
+	TraceExecve     *ebpf.ProgramSpec `ebpf:"trace_execve"`
+	TraceOpenat     *ebpf.ProgramSpec `ebpf:"trace_openat"`
 }
 
 // programMapSpecs contains maps before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type programMapSpecs struct {
+	AllowedIpv4  *ebpf.MapSpec `ebpf:"allowed_ipv4"`
+	AllowedIpv6  *ebpf.MapSpec `ebpf:"allowed_ipv6"`
 	Events       *ebpf.MapSpec `ebpf:"events"`
 	TargetCgroup *ebpf.MapSpec `ebpf:"target_cgroup"`
 }
@@ -93,12 +105,16 @@ func (o *programObjects) Close() error {
 //
 // It can be passed to loadProgramObjects or ebpf.CollectionSpec.LoadAndAssign.
 type programMaps struct {
+	AllowedIpv4  *ebpf.Map `ebpf:"allowed_ipv4"`
+	AllowedIpv6  *ebpf.Map `ebpf:"allowed_ipv6"`
 	Events       *ebpf.Map `ebpf:"events"`
 	TargetCgroup *ebpf.Map `ebpf:"target_cgroup"`
 }
 
 func (m *programMaps) Close() error {
 	return _ProgramClose(
+		m.AllowedIpv4,
+		m.AllowedIpv6,
 		m.Events,
 		m.TargetCgroup,
 	)
@@ -114,13 +130,21 @@ type programVariables struct {
 //
 // It can be passed to loadProgramObjects or ebpf.CollectionSpec.LoadAndAssign.
 type programPrograms struct {
-	TraceConnect *ebpf.Program `ebpf:"trace_connect"`
-	TraceExecve  *ebpf.Program `ebpf:"trace_execve"`
-	TraceOpenat  *ebpf.Program `ebpf:"trace_openat"`
+	EnforceConnect4 *ebpf.Program `ebpf:"enforce_connect4"`
+	EnforceConnect6 *ebpf.Program `ebpf:"enforce_connect6"`
+	EnforceSendmsg4 *ebpf.Program `ebpf:"enforce_sendmsg4"`
+	EnforceSendmsg6 *ebpf.Program `ebpf:"enforce_sendmsg6"`
+	TraceConnect    *ebpf.Program `ebpf:"trace_connect"`
+	TraceExecve     *ebpf.Program `ebpf:"trace_execve"`
+	TraceOpenat     *ebpf.Program `ebpf:"trace_openat"`
 }
 
 func (p *programPrograms) Close() error {
 	return _ProgramClose(
+		p.EnforceConnect4,
+		p.EnforceConnect6,
+		p.EnforceSendmsg4,
+		p.EnforceSendmsg6,
 		p.TraceConnect,
 		p.TraceExecve,
 		p.TraceOpenat,
