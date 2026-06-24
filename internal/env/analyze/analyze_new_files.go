@@ -32,7 +32,7 @@ var suspiciousExt = map[string]bool{
 // AnalyzeNewFiles compares two npm package versions and identifies new files
 // Returns a list of files added in the new version
 func AnalyzeNewFiles(packageName, oldVersion, newVersion string) ([]string, error) {
-	fmt.Printf("\n Analyzing file changes: %s (%s -> %s)\n", packageName, oldVersion, newVersion)
+	fmt.Printf("\nAnalyzing file changes: %s (%s -> %s)\n", packageName, oldVersion, newVersion)
 
 	// Fetch tarballs from npm registry
 	oldTarball, err := fetchTarballURL(packageName, oldVersion)
