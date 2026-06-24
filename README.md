@@ -31,7 +31,7 @@ Yes in vscode with: `code --folder-uri vscode-remote://attached-container+<conta
 
 ## Recommended steps:
 
-**Donload project and Run:**
+**Download project and Run:**
 
 - Docker must be installed
 
@@ -91,9 +91,9 @@ export PATH="$HOME/.local/bin:$PATH"
 
 | Feature                         | State |
 | ------------------------------- | :---: |
-| stable apparmor profile         |   ❌   |
+| stable apparmor profile         |   ✅   |
 | user and perms in the container |   ✅   |
-| eBPF                            |   ❌   |
+| eBPF                            |   ✅   |
 | Network lockdown                |  ✅  |
 | analyze libs                    |  90%  |
 | install libs                    |   ✅   |
