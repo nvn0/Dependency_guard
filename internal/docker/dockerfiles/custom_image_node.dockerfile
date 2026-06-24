@@ -4,6 +4,8 @@ RUN apt update && apt install -y \
     git \
     curl \
     net-tools \
+    iputils-ping \
+    dnsutils \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g npm@latest \
     && npm config set allow-remote none \
