@@ -33,6 +33,10 @@ typedef __u32 __wsum;
 #define BPF_MAP_TYPE_ARRAY 2
 #endif
 
+#ifndef BPF_MAP_TYPE_HASH
+#define BPF_MAP_TYPE_HASH 1
+#endif
+
 #ifndef BPF_MAP_TYPE_CGROUP_ARRAY
 #define BPF_MAP_TYPE_CGROUP_ARRAY 8
 #endif
@@ -41,6 +45,7 @@ typedef __u32 __wsum;
 #define BPF_MAP_TYPE_RINGBUF 27
 #endif
 
+static void *(*bpf_map_lookup_elem)(void *map, const void *key) = (void *)1;
 static __u64 (*bpf_get_current_pid_tgid)(void) = (void *)14;
 static __u64 (*bpf_get_current_uid_gid)(void) = (void *)15;
 static long (*bpf_get_current_comm)(void *buf, __u32 size_of_buf) = (void *)16;
@@ -70,6 +75,17 @@ struct trace_event_raw_sys_enter {
 	__u64 args[6];
 };
 
+struct bpf_sock_addr {
+	__u32 user_family;
+	__u32 user_ip4;
+	__u32 user_ip6[4];
+	__u32 user_port;
+};
+
+struct ipv6_address {
+	__u32 words[4];
+};
+
 struct {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 	__uint(max_entries, 256 * 1024);
@@ -81,6 +97,20 @@ struct {
 	__type(key, __u32);
 	__type(value, __u32);
 } target_cgroup SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 1024);
+	__type(key, __u32);
+	__type(value, __u8);
+} allowed_ipv4 SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 1024);
+	__type(key, struct ipv6_address);
+	__type(value, __u8);
+} allowed_ipv6 SEC(".maps");
 
 static __always_inline int should_trace_current_process(void)
 {
@@ -164,6 +194,49 @@ int trace_openat(struct trace_event_raw_sys_enter  *ctx)
 	bpf_ringbuf_submit(evt, 0);
 
 	return 0;
+}
+
+static __always_inline int is_ipv4_allowed(struct bpf_sock_addr *ctx)
+{
+	__u32 address = ctx->user_ip4;
+
+	return bpf_map_lookup_elem(&allowed_ipv4, &address) != 0;
+}
+
+static __always_inline int is_ipv6_allowed(struct bpf_sock_addr *ctx)
+{
+	struct ipv6_address address = {};
+
+	address.words[0] = ctx->user_ip6[0];
+	address.words[1] = ctx->user_ip6[1];
+	address.words[2] = ctx->user_ip6[2];
+	address.words[3] = ctx->user_ip6[3];
+
+	return bpf_map_lookup_elem(&allowed_ipv6, &address) != 0;
+}
+
+SEC("cgroup/connect4")
+int enforce_connect4(struct bpf_sock_addr *ctx)
+{
+	return is_ipv4_allowed(ctx);
+}
+
+SEC("cgroup/connect6")
+int enforce_connect6(struct bpf_sock_addr *ctx)
+{
+	return is_ipv6_allowed(ctx);
+}
+
+SEC("cgroup/sendmsg4")
+int enforce_sendmsg4(struct bpf_sock_addr *ctx)
+{
+	return is_ipv4_allowed(ctx);
+}
+
+SEC("cgroup/sendmsg6")
+int enforce_sendmsg6(struct bpf_sock_addr *ctx)
+{
+	return is_ipv6_allowed(ctx);
 }
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
