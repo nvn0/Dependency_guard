@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,6 +54,19 @@ type Monitor struct {
 	closeOnce  sync.Once
 }
 
+type EnforcerConfig struct {
+	ContainerPID     int
+	NetworkWhitelist []string
+	// DenyPaths		 []string
+	ObjectPath string
+}
+
+type NetworkEnforcer struct {
+	collection *cebpf.Collection
+	links      []link.Link
+	closeOnce  sync.Once
+}
+
 func StartMonitor(ctx context.Context, cfg MonitorConfig) (*Monitor, error) {
 	if cfg.ContainerPID <= 0 {
 		return nil, fmt.Errorf("invalid container PID: %d", cfg.ContainerPID)
@@ -72,7 +86,13 @@ func StartMonitor(ctx context.Context, cfg MonitorConfig) (*Monitor, error) {
 		collection.Close()
 	}
 
-	if err := setTargetCgroup(collection, cfg.ContainerPID); err != nil {
+	cgroupPath, err := containerCgroupPath(cfg.ContainerPID)
+	if err != nil {
+		cleanup()
+		return nil, err
+	}
+
+	if err := setTargetCgroup(collection, cgroupPath); err != nil {
 		cleanup()
 		return nil, err
 	}
@@ -110,6 +130,51 @@ func StartMonitor(ctx context.Context, cfg MonitorConfig) (*Monitor, error) {
 	go m.readEvents(monitorCtx)
 
 	return m, nil
+}
+
+func StartNetworkEnforcer(ctx context.Context, cfg EnforcerConfig, dnsServers []string) (*NetworkEnforcer, error) {
+	if cfg.ContainerPID <= 0 {
+		return nil, fmt.Errorf("invalid container PID: %d", cfg.ContainerPID)
+	}
+
+	spec, err := loadMonitorSpec(cfg.ObjectPath)
+	if err != nil {
+		return nil, fmt.Errorf("load eBPF object: %w", err)
+	}
+	collection, err := cebpf.NewCollection(spec)
+	if err != nil {
+		return nil, fmt.Errorf("create eBPF collection: %w", err)
+	}
+
+	cgroupPath, err := containerCgroupPath(cfg.ContainerPID)
+	if err != nil {
+		collection.Close()
+		return nil, err
+	}
+
+	cfg.NetworkWhitelist = append(cfg.NetworkWhitelist, "127.0.0.11")
+	cfg.NetworkWhitelist = append(cfg.NetworkWhitelist, dnsServers...)
+	if err := populateNetworkWhitelist(ctx, collection, cfg.NetworkWhitelist); err != nil {
+		collection.Close()
+		return nil, err
+	}
+
+	links, err := attachNetworkEnforcement(collection, cgroupPath)
+	if err != nil {
+		collection.Close()
+		return nil, err
+	}
+
+	return &NetworkEnforcer{collection: collection, links: links}, nil
+}
+
+func (e *NetworkEnforcer) Close() {
+	e.closeOnce.Do(func() {
+		closeLinks(e.links)
+		if e.collection != nil {
+			e.collection.Close()
+		}
+	})
 }
 
 func (m *Monitor) Events() <-chan Event {
@@ -172,15 +237,10 @@ func (m *Monitor) readEvents(ctx context.Context) {
 	}
 }
 
-func setTargetCgroup(collection *cebpf.Collection, pid int) error {
+func setTargetCgroup(collection *cebpf.Collection, cgroupPath string) error {
 	targetMap := collection.Maps["target_cgroup"]
 	if targetMap == nil {
 		return errors.New("eBPF map target_cgroup not found")
-	}
-
-	cgroupPath, err := containerCgroupPath(pid)
-	if err != nil {
-		return err
 	}
 
 	cgroup, err := os.Open(cgroupPath)
@@ -193,6 +253,91 @@ func setTargetCgroup(collection *cebpf.Collection, pid int) error {
 	fd := uint32(cgroup.Fd())
 	if err := targetMap.Put(key, fd); err != nil {
 		return fmt.Errorf("set eBPF target cgroup %s: %w", cgroupPath, err)
+	}
+
+	return nil
+}
+
+type lookupIPFunc func(context.Context, string, string) ([]net.IP, error)
+
+func resolveNetworkWhitelist(ctx context.Context, whitelist []string, lookup lookupIPFunc) ([]net.IP, []error) {
+	addresses := map[string]net.IP{
+		"127.0.0.1":  net.ParseIP("127.0.0.1"),
+		"127.0.0.11": net.ParseIP("127.0.0.11"),
+		"::1":        net.ParseIP("::1"),
+	}
+	var warnings []error
+
+	for _, configured := range whitelist {
+		host := strings.TrimSuffix(strings.TrimSpace(configured), ".")
+		if host == "" {
+			warnings = append(warnings, errors.New("network whitelist contains an empty entry; ignoring it"))
+			continue
+		}
+
+		if ip := net.ParseIP(host); ip != nil {
+			addresses[ip.String()] = ip
+			continue
+		}
+
+		resolved, err := lookup(ctx, "ip", host)
+		if err != nil {
+			warnings = append(warnings, fmt.Errorf("resolve whitelisted host %q: %w; ignoring it", host, err))
+			continue
+		}
+		if len(resolved) == 0 {
+			warnings = append(warnings, fmt.Errorf("whitelisted host %q resolved to no addresses; ignoring it", host))
+			continue
+		}
+		for _, ip := range resolved {
+			if ip != nil {
+				addresses[ip.String()] = ip
+			}
+		}
+	}
+
+	result := make([]net.IP, 0, len(addresses))
+	for _, address := range addresses {
+		result = append(result, address)
+	}
+	return result, warnings
+}
+
+func populateNetworkWhitelist(ctx context.Context, collection *cebpf.Collection, whitelist []string) error {
+	ipv4Map := collection.Maps["allowed_ipv4"]
+	if ipv4Map == nil {
+		return errors.New("eBPF map allowed_ipv4 not found")
+	}
+	ipv6Map := collection.Maps["allowed_ipv6"]
+	if ipv6Map == nil {
+		return errors.New("eBPF map allowed_ipv6 not found")
+	}
+
+	addresses, warnings := resolveNetworkWhitelist(ctx, whitelist, net.DefaultResolver.LookupIP)
+	for _, warning := range warnings {
+		fmt.Fprintf(os.Stderr, "Warning: %v\n", warning)
+	}
+
+	var allow uint8 = 1
+	for _, address := range addresses {
+		if ipv4 := address.To4(); ipv4 != nil {
+			var key [4]byte
+			copy(key[:], ipv4)
+			if err := ipv4Map.Put(key, allow); err != nil {
+				return fmt.Errorf("allow IPv4 address %s: %w", address, err)
+			}
+			continue
+		}
+
+		ipv6 := address.To16()
+		if ipv6 == nil {
+			return fmt.Errorf("invalid whitelisted IP address %q", address)
+		}
+		var key [16]byte
+		copy(key[:], ipv6)
+		if err := ipv6Map.Put(key, allow); err != nil {
+			return fmt.Errorf("allow IPv6 address %s: %w", address, err)
+		}
 	}
 
 	return nil
@@ -250,6 +395,40 @@ func attachTracepoints(collection *cebpf.Collection) ([]link.Link, error) {
 		}
 
 		links = append(links, tp)
+	}
+
+	return links, nil
+}
+
+func attachNetworkEnforcement(collection *cebpf.Collection, cgroupPath string) ([]link.Link, error) {
+	definitions := []struct {
+		programName string
+		attachType  cebpf.AttachType
+	}{
+		{"enforce_connect4", cebpf.AttachCGroupInet4Connect},
+		{"enforce_connect6", cebpf.AttachCGroupInet6Connect},
+		{"enforce_sendmsg4", cebpf.AttachCGroupUDP4Sendmsg},
+		{"enforce_sendmsg6", cebpf.AttachCGroupUDP6Sendmsg},
+	}
+
+	links := make([]link.Link, 0, len(definitions))
+	for _, definition := range definitions {
+		program := collection.Programs[definition.programName]
+		if program == nil {
+			closeLinks(links)
+			return nil, fmt.Errorf("eBPF program %s not found", definition.programName)
+		}
+
+		attached, err := link.AttachCgroup(link.CgroupOptions{
+			Path:    cgroupPath,
+			Attach:  definition.attachType,
+			Program: program,
+		})
+		if err != nil {
+			closeLinks(links)
+			return nil, fmt.Errorf("attach eBPF program %s to %s: %w", definition.programName, cgroupPath, err)
+		}
+		links = append(links, attached)
 	}
 
 	return links, nil
