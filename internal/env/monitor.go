@@ -92,6 +92,10 @@ func Monitor(projectName string) {
 }
 
 func printMonitorEvent(event ebpf.Event) {
+	if event.Type == ebpf.EventOpen || event.Type == ebpf.EventConnect {
+		fmt.Printf(Reset + "[%s] pid=%d tgid=%d uid=%d comm=%s data=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
+	}
+
 	if event.Type == ebpf.EventConnectResult {
 		status := "success"
 		if event.Ret < 0 {
@@ -104,9 +108,9 @@ func printMonitorEvent(event ebpf.Event) {
 	}
 
 	if event.Data == "" {
-		fmt.Printf("[%s] pid=%d tgid=%d uid=%d comm=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm)
+		fmt.Printf(Yellow + "[%s] pid=%d tgid=%d uid=%d comm=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm)
 		return
 	}
 
-	fmt.Printf("[%s] pid=%d tgid=%d uid=%d comm=%s data=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
+	fmt.Printf(Blue + "[%s] pid=%d tgid=%d uid=%d comm=%s data=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
 }
