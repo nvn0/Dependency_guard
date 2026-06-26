@@ -93,24 +93,25 @@ func Monitor(projectName string) {
 
 func printMonitorEvent(event ebpf.Event) {
 	if event.Type == ebpf.EventOpen || event.Type == ebpf.EventConnect {
-		fmt.Printf(Reset + "[%s] pid=%d tgid=%d uid=%d comm=%s data=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
+		fmt.Printf("[%s] pid=%d tgid=%d uid=%d comm=%s data=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
+		return
 	}
 
 	if event.Type == ebpf.EventConnectResult {
 		status := "success"
 		if event.Ret < 0 {
 			status = "failed"
-			fmt.Printf(Red + "[%s] pid=%d tgid=%d uid=%d comm=%s ret=%d status=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Ret, status)
+			fmt.Printf(Red + "[%s] pid=%d tgid=%d uid=%d comm=%s ret=%d status=%s" + Reset + "\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Ret, status)
 			return
 		}
-		fmt.Printf(Green + "[%s] pid=%d tgid=%d uid=%d comm=%s ret=%d status=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Ret, status)
+		fmt.Printf(Green + "[%s] pid=%d tgid=%d uid=%d comm=%s ret=%d status=%s" + Reset + "\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Ret, status)
 		return
 	}
 
 	if event.Data == "" {
-		fmt.Printf(Yellow + "[%s] pid=%d tgid=%d uid=%d comm=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm)
+		fmt.Printf(Yellow + "[%s] pid=%d tgid=%d uid=%d comm=%s" + Reset + "\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm)
 		return
 	}
 
-	fmt.Printf(Blue + "[%s] pid=%d tgid=%d uid=%d comm=%s data=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
+	fmt.Printf(Blue + "[%s] pid=%d tgid=%d uid=%d comm=%s data=%s" + Reset + "\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
 }
