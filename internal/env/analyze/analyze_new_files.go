@@ -9,6 +9,8 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"crypto/sha512"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,9 +31,36 @@ var suspiciousExt = map[string]bool{
 	".cmd":  true,
 }
 
+// CalculateTarballSHA512Integrity calcula o hash SHA512 do tarball inteiro
+// e retorna no formato npm: "sha512-<base64>"
+func CalculateTarballSHA512Integrity(tarballURL string) (string, error) {
+	resp, err := http.Get(tarballURL)
+	if err != nil {
+		return "", fmt.Errorf("erro ao fazer download do tarball: %w", err)
+	}
+	defer resp.Body.Close()
+
+	hash := sha512.New()
+
+	// Ler todos os bytes do tarball e calcular hash
+	_, err = io.Copy(hash, resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("erro ao ler tarball: %w", err)
+	}
+
+	// Digest (64 bytes)
+	digest := hash.Sum(nil)
+
+	// Codificar em Base64
+	base64Hash := base64.StdEncoding.EncodeToString(digest)
+
+	// Prefixar com "sha512-"
+	return "sha512-" + base64Hash, nil
+}
+
 // AnalyzeNewFiles compares two npm package versions and identifies new files
 // Returns a list of files added in the new version
-func AnalyzeNewFiles(packageName, oldVersion, newVersion string) ([]string, error) {
+func AnalyzeNewFiles(packageName, oldVersion, newVersion, remote_sha512Hash string) ([]string, error) {
 	fmt.Printf("\nAnalyzing file changes: %s (%s -> %s)\n", packageName, oldVersion, newVersion)
 
 	// Fetch tarballs from npm registry
@@ -43,6 +72,19 @@ func AnalyzeNewFiles(packageName, oldVersion, newVersion string) ([]string, erro
 	newTarball, err := fetchTarballURL(packageName, newVersion)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching new version tarball: %v", err)
+	}
+
+	local_sha512Hash, err := CalculateTarballSHA512Integrity(newTarball)
+	if err != nil {
+		return nil, fmt.Errorf("error calculating local SHA512 hash: %v", err)
+	}
+
+	if local_sha512Hash != remote_sha512Hash {
+		fmt.Printf("\n"+Red+"Warning: SHA512 hash mismatch for %s@%s\n"+Reset, packageName, newVersion)
+		fmt.Printf("Local SHA512:  %s\n", local_sha512Hash)
+		fmt.Printf("Remote SHA512: %s\n", remote_sha512Hash)
+	} else {
+		fmt.Printf("\n"+Green+"Tarball SHA512 hash verified for %s@%s\n"+Reset, packageName, newVersion)
 	}
 
 	// Extract file lists from both versions
@@ -71,7 +113,7 @@ func AnalyzeNewFiles(packageName, oldVersion, newVersion string) ([]string, erro
 			}
 		}
 	} else {
-		fmt.Println(Green + " No new files detected" + Reset)
+		fmt.Println(Green + "\n No new files detected" + Reset)
 	}
 
 	return newFilesList, nil

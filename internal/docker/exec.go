@@ -62,7 +62,7 @@ func ConnectToContainer(projectName string) error {
 	}
 }
 
-func GetInstalledNPMLibs(container_id string) ([]string, error) {
+func GetInstalledNPMLibs(container_id string) (map[string]string, error) {
 	out, errOut, err := ExecInContainer(container_id, []string{"sh", "-c", "cd /workspace && npm list --depth=0 --json"})
 	if err != nil {
 		return nil, fmt.Errorf("Erro: %v, stderr: %s", err, errOut)
@@ -70,7 +70,11 @@ func GetInstalledNPMLibs(container_id string) ([]string, error) {
 
 	// Processar a saída JSON para extrair os nomes das bibliotecas
 	var result struct {
-		Dependencies map[string]interface{} `json:"dependencies"`
+		Dependencies map[string]struct {
+			Version    string `json:"version"`
+			Resolved   string `json:"resolved"`
+			Overridden bool   `json:"overridden"`
+		} `json:"dependencies"`
 	}
 
 	err = json.Unmarshal([]byte(out), &result)
@@ -78,10 +82,11 @@ func GetInstalledNPMLibs(container_id string) ([]string, error) {
 		return nil, fmt.Errorf("Erro ao processar JSON: %v", err)
 	}
 
-	var libs []string
-	for lib := range result.Dependencies {
-		libs = append(libs, lib)
+	libs := make(map[string]string)
+	for lib, info := range result.Dependencies {
+		libs[lib] = info.Version
 	}
+	//fmt.Println(libs)
 
 	return libs, nil
 }

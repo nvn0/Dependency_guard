@@ -102,12 +102,14 @@ func analyzeDeps(v NpmVersion) {
 	}
 }
 
-func analyzeIntegrity(v NpmVersion) {
+func analyzeIntegrity(v NpmVersion) string {
 	fmt.Println(" \nIntegrity:", v.Dist.Integrity)
 
 	if v.Dist.Integrity == "" {
 		fmt.Println(" " + Yellow + "no hash integrity" + Reset)
+		return ""
 	}
+	return v.Dist.Integrity
 }
 
 func diffDeps(old, new map[string]string) {
@@ -333,18 +335,18 @@ func analyzeLastVersionAuthors(pkg, previous, latest string) {
 
 }
 
-func AnalyzeNPMPackage(pkg string) (bool, time.Duration, error) {
+func AnalyzeNPMPackage(pkg string) (bool, time.Duration, string, string, error) {
 	url := fmt.Sprintf("https://registry.npmjs.org/%s", pkg)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return false, 0, err
+		return false, 0, "", "", err
 	}
 	defer resp.Body.Close()
 
 	var data NpmPackage
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return false, 0, err
+		return false, 0, "", "", err
 	}
 
 	latest := data.DistTags["latest"] // Get the latest version from dist-tags
@@ -358,7 +360,7 @@ func AnalyzeNPMPackage(pkg string) (bool, time.Duration, error) {
 	analyzeRepo(version)
 	analyzeScripts(version)
 	analyzeDeps(version)
-	analyzeIntegrity(version)
+	var sha string = analyzeIntegrity(version)
 
 	owner, repo := analyzeGitConsistency(version)
 
@@ -387,7 +389,7 @@ func AnalyzeNPMPackage(pkg string) (bool, time.Duration, error) {
 
 		analyzeLastVersionAuthors(pkg, previousVersion, latest)
 
-		_, err := AnalyzeNewFiles(pkg, previousVersion, latest)
+		_, err := AnalyzeNewFiles(pkg, previousVersion, latest, sha)
 		if err != nil {
 			fmt.Printf("Warning: Error analyzing new files: %v\n", err)
 		}
@@ -395,7 +397,7 @@ func AnalyzeNPMPackage(pkg string) (bool, time.Duration, error) {
 		fmt.Println("No previous version found for file comparison")
 	}
 
-	return new, age, nil
+	return new, age, latest, sha, nil
 }
 
 func Run(projectName, libraryName string) {
@@ -410,7 +412,7 @@ func Run(projectName, libraryName string) {
 		return
 	}
 
-	_, _, err = AnalyzeNPMPackage(libraryName)
+	_, _, _, _, err = AnalyzeNPMPackage(libraryName)
 	if err != nil {
 		fmt.Printf("Error analyzing package: %v\n", err)
 	}

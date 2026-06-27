@@ -19,7 +19,7 @@ func InstallNPMLib(projectName, libraryName, container_id string) {
 	}
 
 	fmt.Println("Running a scan on lib:", libraryName)
-	new, age, err := analyze.AnalyzeNPMPackage(libraryName)
+	new, age, _, _, err := analyze.AnalyzeNPMPackage(libraryName)
 	if err != nil {
 		fmt.Printf("Error analyzing package: %v\n", err)
 		return

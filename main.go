@@ -8,6 +8,7 @@ import (
 	"Dependency_guard/internal/env"
 	"Dependency_guard/internal/env/analyze"
 	"Dependency_guard/internal/env/install"
+	"Dependency_guard/internal/env/update"
 	"Dependency_guard/internal/security"
 )
 
@@ -47,14 +48,14 @@ func main() {
 		if os.Args[3] == "all" {
 			projectName := os.Args[2]
 			//fmt.Println("Updating all libraries in project:", projectName)
-			install.UpdateAll(projectName)
+			update.UpdateAll(projectName)
 			return
 		}
 
 		projectName := os.Args[2]
 		libraryName := os.Args[3]
 		//fmt.Println("Updating library:", libraryName, "in project:", projectName)
-		install.Update(projectName, libraryName)
+		update.Update(projectName, libraryName)
 
 	case "analyze":
 		if len(os.Args) != 4 {
