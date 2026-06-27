@@ -11,6 +11,22 @@ import (
 
 func InstallNPMLib(projectName, libraryName, container_id string) {
 
+	//get installed libs
+	libs, err := docker.GetInstalledNPMLibs(container_id)
+	if err != nil {
+		fmt.Printf("Error getting installed libraries: %v\n", err)
+		return
+	}
+
+	for t_libName, libVersion := range libs {
+		if t_libName == libraryName {
+			fmt.Printf("Package found in project %s: %s (%s)\n", projectName, t_libName, libVersion)
+			fmt.Println("\n Package already installed. Consider using the update command instead of install.")
+			fmt.Printf("\nsafe-env update %s %s\n", projectName, libraryName)
+			return
+		}
+	}
+
 	// Get config info from file
 	config_info, err := utils.GetConfigInfo(projectName)
 	if err != nil {

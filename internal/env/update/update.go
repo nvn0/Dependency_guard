@@ -57,7 +57,7 @@ func Update(projectName, libraryName string) {
 		}
 	}
 
-	fmt.Println("\n=== Analyzing file changes between versions:", currentVersion, "(current installed)->", latest, "===\n")
+	fmt.Println("\n=== Analyzing file changes between versions:", currentVersion, "(current installed)->", latest, "===")
 	// File change analysis with the instaled version and the latest version
 	_, err = analyze.AnalyzeNewFiles(l_libName, currentVersion, latest, sha)
 	if err != nil {
@@ -147,7 +147,7 @@ func UpdateAll(projectName string) {
 			continue
 		}
 
-		fmt.Println("\n=== Analyzing file changes between versions:", libVersion, "(current installed) ->", latest, "===\n")
+		fmt.Println("\n=== Analyzing file changes between versions:", libVersion, "(current installed) ->", latest, "===")
 		// File change analysis with the instaled version and the latest version
 		_, err = analyze.AnalyzeNewFiles(libName, libVersion, latest, sha)
 		if err != nil {
