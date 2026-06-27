@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	EventExec    uint32 = 1
-	EventConnect uint32 = 2
-	EventOpen    uint32 = 3
+	EventExec          uint32 = 1
+	EventConnect       uint32 = 2
+	EventOpen          uint32 = 3
+	EventConnectResult uint32 = 4
 
 	eventCommLen = 16
 	eventDataLen = 256
@@ -40,6 +41,7 @@ type Event struct {
 	TGID uint32
 	UID  uint32
 	Type uint32
+	Ret  int64
 	Comm string
 	Data string
 }
@@ -377,6 +379,7 @@ func attachTracepoints(collection *cebpf.Collection) ([]link.Link, error) {
 	}{
 		{"trace_execve", "syscalls", "sys_enter_execve"},
 		{"trace_connect", "syscalls", "sys_enter_connect"},
+		{"trace_connect_exit", "syscalls", "sys_exit_connect"},
 		{"trace_openat", "syscalls", "sys_enter_openat"},
 	}
 
@@ -441,7 +444,7 @@ func closeLinks(links []link.Link) {
 }
 
 func decodeEvent(raw []byte) (Event, error) {
-	const fixedLen = 16
+	const fixedLen = 24
 
 	if len(raw) < fixedLen+eventCommLen+eventDataLen {
 		return Event{}, fmt.Errorf("invalid eBPF event size: got %d bytes", len(raw))
@@ -452,8 +455,9 @@ func decodeEvent(raw []byte) (Event, error) {
 		TGID: binary.LittleEndian.Uint32(raw[4:8]),
 		UID:  binary.LittleEndian.Uint32(raw[8:12]),
 		Type: binary.LittleEndian.Uint32(raw[12:16]),
-		Comm: cString(raw[16 : 16+eventCommLen]),
-		Data: cString(raw[16+eventCommLen : 16+eventCommLen+eventDataLen]),
+		Ret:  int64(binary.LittleEndian.Uint64(raw[16:24])),
+		Comm: cString(raw[24 : 24+eventCommLen]),
+		Data: cString(raw[24+eventCommLen : 24+eventCommLen+eventDataLen]),
 	}
 
 	return event, nil
@@ -474,6 +478,8 @@ func (e Event) TypeName() string {
 		return "connect"
 	case EventOpen:
 		return "open"
+	case EventConnectResult:
+		return "connect-result"
 	default:
 		return fmt.Sprintf("unknown:%d", e.Type)
 	}

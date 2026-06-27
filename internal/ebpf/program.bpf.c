@@ -63,6 +63,7 @@ enum event_type {
 	EVENT_EXEC = 1,
 	EVENT_CONNECT,
 	EVENT_OPEN,
+	EVENT_CONNECT_RESULT,
 };
 
 // enum path_rule_type {
@@ -75,6 +76,7 @@ struct event {
 	__u32 tgid;
 	__u32 uid;
 	__u32 type;
+	__s64 ret;
 	char comm[TASK_COMM_LEN];
 	char data[PATH_LEN];
 };
@@ -83,6 +85,12 @@ struct trace_event_raw_sys_enter {
 	__u64 unused;
 	__s32 id;
 	__u64 args[6];
+};
+
+struct trace_event_raw_sys_exit {
+	__u64 unused;
+	__s32 id;
+	__s64 ret;
 };
 
 /*
@@ -176,6 +184,7 @@ static __always_inline struct event *reserve_event(__u32 type)
 	evt->tgid = pid_tgid >> 32;
 	evt->uid = (__u32)uid_gid;
 	evt->type = type;
+	evt->ret = 0;
 	bpf_get_current_comm(&evt->comm, sizeof(evt->comm));
 
 	return evt;
@@ -209,6 +218,23 @@ int trace_connect(struct trace_event_raw_sys_enter *ctx)
 		return 0;
 	}
 
+	evt->data[0] = '\0';
+	bpf_ringbuf_submit(evt, 0);
+
+	return 0;
+}
+
+SEC("tracepoint/syscalls/sys_exit_connect")
+int trace_connect_exit(struct trace_event_raw_sys_exit *ctx)
+{
+	struct event *evt;
+
+	evt = reserve_event(EVENT_CONNECT_RESULT);
+	if (!evt) {
+		return 0;
+	}
+
+	evt->ret = ctx->ret;
 	evt->data[0] = '\0';
 	bpf_ringbuf_submit(evt, 0);
 
