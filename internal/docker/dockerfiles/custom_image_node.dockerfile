@@ -10,5 +10,8 @@ RUN apt update && apt install -y \
     && npm install -g npm@latest \
     && npm config set allow-remote none \
     && npm config set allow-git none
-WORKDIR /workspace
 
+RUN useradd -m -s /bin/bash appuser
+RUN mkdir -p /workspace && chown -R appuser:appuser /workspace
+WORKDIR /workspace
+USER user
