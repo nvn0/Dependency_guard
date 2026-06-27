@@ -219,8 +219,8 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 				Image: imageName,
 				Cmd:   []string{"sleep", "infinity"},
 				Tty:   false,
-				//User:  "0:0", // Run as root inside container, se nao for root nem cria ficheiros dá mesmo com apparmor default
-				User: "1001:1001",
+				//User:  "0:0",
+				User: "1001:1001", // resolvido user normal ja funciona
 			},
 			HostConfig: &container.HostConfig{
 				ReadonlyRootfs: false, // deve ser true apenas para produção e apps que não precisam de escrita, para desenvolvimento pode ser false
