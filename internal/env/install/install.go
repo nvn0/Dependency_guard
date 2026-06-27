@@ -41,6 +41,15 @@ func InstallNPMLib(projectName, libraryName, container_id string) {
 		fmt.Printf("\nInstalling library: %s\n", libraryName)
 	}
 
+	fmt.Println("You want to proceed with the instalation? [y/n]")
+	var response string
+	fmt.Scanln(&response)
+
+	if response != "y" {
+		fmt.Println("Installation cancelled.")
+		return
+	}
+
 	fmt.Println("Running secure install...")
 	fmt.Println("Install Delay configured up:", delay, "hours")
 

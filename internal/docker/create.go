@@ -219,7 +219,7 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 				Image: imageName,
 				Cmd:   []string{"sleep", "infinity"},
 				Tty:   false,
-				User:  "0:0", // Run as root inside container
+				User:  "0:0", // Run as root inside container, se nao for root nem cria ficheiros dá mesmo com apparmor default
 				//User: "1001:1001",
 			},
 			HostConfig: &container.HostConfig{
