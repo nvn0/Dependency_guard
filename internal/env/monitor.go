@@ -12,6 +12,14 @@ import (
 	"Dependency_guard/internal/env/utils"
 )
 
+const (
+	Reset  = "\033[0m"
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+	Blue   = "\033[34m"
+)
+
 func Monitor(projectName string) {
 	_, containerID, err := utils.GetProjectInfo(projectName)
 	if err != nil {
@@ -84,10 +92,26 @@ func Monitor(projectName string) {
 }
 
 func printMonitorEvent(event ebpf.Event) {
-	if event.Data == "" {
-		fmt.Printf("[%s] pid=%d tgid=%d uid=%d comm=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm)
+	if event.Type == ebpf.EventOpen || event.Type == ebpf.EventConnect {
+		fmt.Printf("[%s] pid=%d tgid=%d uid=%d comm=%s data=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
 		return
 	}
 
-	fmt.Printf("[%s] pid=%d tgid=%d uid=%d comm=%s data=%s\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
+	if event.Type == ebpf.EventConnectResult {
+		status := "success"
+		if event.Ret < 0 {
+			status = "failed"
+			fmt.Printf(Red + "[%s] pid=%d tgid=%d uid=%d comm=%s ret=%d status=%s" + Reset + "\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Ret, status)
+			return
+		}
+		fmt.Printf(Green + "[%s] pid=%d tgid=%d uid=%d comm=%s ret=%d status=%s" + Reset + "\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Ret, status)
+		return
+	}
+
+	if event.Data == "" {
+		fmt.Printf(Yellow + "[%s] pid=%d tgid=%d uid=%d comm=%s" + Reset + "\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm)
+		return
+	}
+
+	fmt.Printf(Blue + "[%s] pid=%d tgid=%d uid=%d comm=%s data=%s" + Reset + "\n", event.TypeName(), event.PID, event.TGID, event.UID, event.Comm, event.Data)
 }
