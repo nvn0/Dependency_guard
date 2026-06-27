@@ -50,7 +50,7 @@ func InstallNPMLib(projectName, libraryName, container_id string) {
 		return
 	}
 
-	fmt.Println("Running secure install...")
+	fmt.Println("Running install...")
 	fmt.Println("Install Delay configured up:", delay, "hours")
 
 	cmd1 := []string{"mkdir", "-p", "/workspace"}

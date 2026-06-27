@@ -49,6 +49,16 @@ func Update(projectName, libraryName string) {
 		return
 
 	} else {
+
+		fmt.Println("You want to proceed with the update? [y/n]")
+		var response string
+		fmt.Scanln(&response)
+
+		if response != "y" {
+			fmt.Println("Update cancelled.")
+			return
+		}
+
 		fmt.Printf("\nUpdating library: %s\n", libraryName)
 
 		cmd1 := []string{"mkdir", "-p", "/workspace"}
@@ -120,6 +130,16 @@ func UpdateAll(projectName string) {
 			fmt.Printf("\nWarning: Library %s is very recent (age: %d hours), consider waiting before updating. The minimum delay for this project is %d hours.\n", lib, int(age.Round(time.Hour).Hours()), delay)
 			continue
 		} else {
+
+			fmt.Println("You want to proceed with the update? [y/n]")
+			var response string
+			fmt.Scanln(&response)
+
+			if response != "y" {
+				fmt.Println("Update cancelled.")
+				return
+			}
+
 			fmt.Printf("\nUpdating library: %s\n", lib)
 
 			cmd1 := []string{"mkdir", "-p", "/workspace"}
