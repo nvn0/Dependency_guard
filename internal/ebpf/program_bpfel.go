@@ -62,22 +62,26 @@ type programSpecs struct {
 type programProgramSpecs struct {
 	EnforceConnect4  *ebpf.ProgramSpec `ebpf:"enforce_connect4"`
 	EnforceConnect6  *ebpf.ProgramSpec `ebpf:"enforce_connect6"`
+	EnforceFileOpen  *ebpf.ProgramSpec `ebpf:"enforce_file_open"`
 	EnforceSendmsg4  *ebpf.ProgramSpec `ebpf:"enforce_sendmsg4"`
 	EnforceSendmsg6  *ebpf.ProgramSpec `ebpf:"enforce_sendmsg6"`
 	TraceConnect     *ebpf.ProgramSpec `ebpf:"trace_connect"`
 	TraceConnectExit *ebpf.ProgramSpec `ebpf:"trace_connect_exit"`
 	TraceExecve      *ebpf.ProgramSpec `ebpf:"trace_execve"`
 	TraceOpenat      *ebpf.ProgramSpec `ebpf:"trace_openat"`
+	TraceOpenatExit  *ebpf.ProgramSpec `ebpf:"trace_openat_exit"`
 }
 
 // programMapSpecs contains maps before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type programMapSpecs struct {
-	AllowedIpv4  *ebpf.MapSpec `ebpf:"allowed_ipv4"`
-	AllowedIpv6  *ebpf.MapSpec `ebpf:"allowed_ipv6"`
-	Events       *ebpf.MapSpec `ebpf:"events"`
-	TargetCgroup *ebpf.MapSpec `ebpf:"target_cgroup"`
+	AllowedIpv4        *ebpf.MapSpec `ebpf:"allowed_ipv4"`
+	AllowedIpv6        *ebpf.MapSpec `ebpf:"allowed_ipv6"`
+	DenyFileHashes     *ebpf.MapSpec `ebpf:"deny_file_hashes"`
+	Events             *ebpf.MapSpec `ebpf:"events"`
+	PendingDeniedOpens *ebpf.MapSpec `ebpf:"pending_denied_opens"`
+	TargetCgroup       *ebpf.MapSpec `ebpf:"target_cgroup"`
 }
 
 // programVariableSpecs contains global variables before they are loaded into the kernel.
@@ -106,17 +110,21 @@ func (o *programObjects) Close() error {
 //
 // It can be passed to loadProgramObjects or ebpf.CollectionSpec.LoadAndAssign.
 type programMaps struct {
-	AllowedIpv4  *ebpf.Map `ebpf:"allowed_ipv4"`
-	AllowedIpv6  *ebpf.Map `ebpf:"allowed_ipv6"`
-	Events       *ebpf.Map `ebpf:"events"`
-	TargetCgroup *ebpf.Map `ebpf:"target_cgroup"`
+	AllowedIpv4        *ebpf.Map `ebpf:"allowed_ipv4"`
+	AllowedIpv6        *ebpf.Map `ebpf:"allowed_ipv6"`
+	DenyFileHashes     *ebpf.Map `ebpf:"deny_file_hashes"`
+	Events             *ebpf.Map `ebpf:"events"`
+	PendingDeniedOpens *ebpf.Map `ebpf:"pending_denied_opens"`
+	TargetCgroup       *ebpf.Map `ebpf:"target_cgroup"`
 }
 
 func (m *programMaps) Close() error {
 	return _ProgramClose(
 		m.AllowedIpv4,
 		m.AllowedIpv6,
+		m.DenyFileHashes,
 		m.Events,
+		m.PendingDeniedOpens,
 		m.TargetCgroup,
 	)
 }
@@ -133,24 +141,28 @@ type programVariables struct {
 type programPrograms struct {
 	EnforceConnect4  *ebpf.Program `ebpf:"enforce_connect4"`
 	EnforceConnect6  *ebpf.Program `ebpf:"enforce_connect6"`
+	EnforceFileOpen  *ebpf.Program `ebpf:"enforce_file_open"`
 	EnforceSendmsg4  *ebpf.Program `ebpf:"enforce_sendmsg4"`
 	EnforceSendmsg6  *ebpf.Program `ebpf:"enforce_sendmsg6"`
 	TraceConnect     *ebpf.Program `ebpf:"trace_connect"`
 	TraceConnectExit *ebpf.Program `ebpf:"trace_connect_exit"`
 	TraceExecve      *ebpf.Program `ebpf:"trace_execve"`
 	TraceOpenat      *ebpf.Program `ebpf:"trace_openat"`
+	TraceOpenatExit  *ebpf.Program `ebpf:"trace_openat_exit"`
 }
 
 func (p *programPrograms) Close() error {
 	return _ProgramClose(
 		p.EnforceConnect4,
 		p.EnforceConnect6,
+		p.EnforceFileOpen,
 		p.EnforceSendmsg4,
 		p.EnforceSendmsg6,
 		p.TraceConnect,
 		p.TraceConnectExit,
 		p.TraceExecve,
 		p.TraceOpenat,
+		p.TraceOpenatExit,
 	)
 }
 

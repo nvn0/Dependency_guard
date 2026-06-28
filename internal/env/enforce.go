@@ -90,20 +90,21 @@ func Enforce(projectName string) {
 	dnsServerStrings := ipsToStrings(dnsServers)
 	fmt.Println("Container DNS servers:")
 	for _, dns := range dnsServerStrings {
-      fmt.Println(dns)
-  	}
+		fmt.Println(dns)
+	}
 
 	enforcer, err := ebpf.StartNetworkEnforcer(ctx, ebpf.EnforcerConfig{
 		ContainerPID:     containerPID,
 		NetworkWhitelist: config.Ebpf.Whitelist,
+		DenyPaths:        config.Ebpf.DenyPaths,
 	}, dnsServerStrings)
 	if err != nil {
-		fmt.Printf("Error starting eBPF network enforcement: %v\n", err)
+		fmt.Printf("Error starting eBPF enforcement: %v\n", err)
 		return
 	}
 	defer enforcer.Close()
 
-	fmt.Printf("Enforcing network whitelist for project %s with container PID %d. Press Ctrl+C to stop.\n", projectName, containerPID)
+	fmt.Printf("Enforcing network whitelist and denied files for project %s with container PID %d. Press Ctrl+C to stop.\n", projectName, containerPID)
 	<-ctx.Done()
-	fmt.Println("\nStopping eBPF network enforcement")
+	fmt.Println("\nStopping eBPF enforcement")
 }

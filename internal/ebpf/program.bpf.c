@@ -11,9 +11,11 @@ typedef __u32 __be32;
 typedef __u32 __wsum;
 
 #define TASK_COMM_LEN 	16
-#define MAX_DENY_PATHS 	32
+#define MAX_DENY_PATHS 	64
 #define PATH_LEN 		256
 #define EACCES 			13
+#define FNV_OFFSET_BASIS 14695981039346656037ULL
+#define FNV_PRIME 1099511628211ULL
 
 #ifndef SEC
 #define SEC(name) __attribute__((section(name), used))
@@ -47,9 +49,13 @@ typedef __u32 __wsum;
 #define BPF_MAP_TYPE_RINGBUF 27
 #endif
 
-// struct path;
+#ifndef BPF_ANY
+#define BPF_ANY 0
+#endif
 
 static void *(*bpf_map_lookup_elem)(void *map, const void *key) = (void *)1;
+static long (*bpf_map_update_elem)(void *map, const void *key, const void *value, __u64 flags) = (void *)2;
+static long (*bpf_map_delete_elem)(void *map, const void *key) = (void *)3;
 static __u64 (*bpf_get_current_pid_tgid)(void) = (void *)14;
 static __u64 (*bpf_get_current_uid_gid)(void) = (void *)15;
 static long (*bpf_get_current_comm)(void *buf, __u32 size_of_buf) = (void *)16;
@@ -57,7 +63,6 @@ static long (*bpf_current_task_under_cgroup)(void *map, __u32 index) = (void *)3
 static long (*bpf_probe_read_user_str)(void *dst, __u32 size, const void *unsafe_ptr) = (void *)114;
 static void *(*bpf_ringbuf_reserve)(void *ringbuf, __u64 size, __u64 flags) = (void *)131;
 static void (*bpf_ringbuf_submit)(void *data, __u64 flags) = (void *)132;
-// static long (*bpf_d_path)(struct path *path, char *buf, __u32 size) = (void *)147;
 
 enum event_type {
 	EVENT_EXEC = 1,
@@ -65,11 +70,6 @@ enum event_type {
 	EVENT_OPEN,
 	EVENT_CONNECT_RESULT,
 };
-
-// enum path_rule_type {
-// 	RULE_PATH = 1,
-// 	RULE_BASENAME
-// };
 
 struct event {
 	__u32 pid;
@@ -93,19 +93,6 @@ struct trace_event_raw_sys_exit {
 	__s64 ret;
 };
 
-/*
- * Minimal CO-RE definitions. Clang records field relocations for f_path and
- * the loader resolves its real offset from the running kernel's BTF.
- */
-// struct path {
-// 	void *mnt;
-// 	void *dentry;
-// } __attribute__((preserve_access_index));
-
-// struct file {
-// 	struct path f_path;
-// } __attribute__((preserve_access_index));
-
 struct bpf_sock_addr {
 	__u32 user_family;
 	__u32 user_ip4;
@@ -116,13 +103,6 @@ struct bpf_sock_addr {
 struct ipv6_address {
 	__u32 words[4];
 };
-
-// struct path_rule {
-// 	__u32 active;
-// 	__u32 type;
-// 	__u32 length;
-// 	char value[PATH_LEN];
-// };
 
 struct {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
@@ -150,12 +130,19 @@ struct {
 	__type(value, __u8);
 } allowed_ipv6 SEC(".maps");
 
-// struct {
-// 	__uint(type, BPF_MAP_TYPE_ARRAY);
-// 	__uint(max_entries, MAX_DENY_PATHS);
-// 	__type(key, __u32);
-// 	__type(value, struct path_rule);
-// } deny_paths SEC(".maps");
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, MAX_DENY_PATHS);
+	__type(key, __u64);
+	__type(value, __u8);
+} deny_file_hashes SEC(".maps");
+
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 4096);
+	__type(key, __u64);
+	__type(value, __u8);
+} pending_denied_opens SEC(".maps");
 
 static __always_inline int should_trace_current_process(void)
 {
@@ -246,17 +233,81 @@ int trace_openat(struct trace_event_raw_sys_enter  *ctx)
 {
 	struct event *evt;
 	const char *filename;
+	char path[PATH_LEN];
+	__u64 hash = FNV_OFFSET_BASIS;
+	__u64 pid_tgid;
+	__u8 deny = 1;
 
-	evt = reserve_event(EVENT_OPEN);
-	if (!evt) {
+	if (!should_trace_current_process()) {
 		return 0;
 	}
 
 	filename = (const char *)ctx->args[1];
-	bpf_probe_read_user_str(evt->data, sizeof(evt->data), filename);
-	bpf_ringbuf_submit(evt, 0);
+	if (bpf_probe_read_user_str(path, sizeof(path), filename) <= 0)
+		return 0;
+
+	evt = bpf_ringbuf_reserve(&events, sizeof(*evt), 0);
+	if (evt) {
+		pid_tgid = bpf_get_current_pid_tgid();
+		evt->pid = (__u32)pid_tgid;
+		evt->tgid = pid_tgid >> 32;
+		evt->uid = (__u32)bpf_get_current_uid_gid();
+		evt->type = EVENT_OPEN;
+		evt->ret = 0;
+		bpf_get_current_comm(&evt->comm, sizeof(evt->comm));
+
+		for (__u32 i = 0; i < PATH_LEN; i++) {
+			evt->data[i] = path[i];
+			if (path[i] == '\0')
+				break;
+		}
+		bpf_ringbuf_submit(evt, 0);
+	}
+
+	for (__u32 i = 0; i < PATH_LEN; i++) {
+		char current = path[i];
+
+		if (current == '\0')
+			break;
+
+		hash ^= (__u8)current;
+		hash *= FNV_PRIME;
+	}
+
+	if (bpf_map_lookup_elem(&deny_file_hashes, &hash) != 0) {
+		pid_tgid = bpf_get_current_pid_tgid();
+		bpf_map_update_elem(&pending_denied_opens, &pid_tgid, &deny, BPF_ANY);
+	}
 
 	return 0;
+}
+
+SEC("tracepoint/syscalls/sys_exit_openat")
+int trace_openat_exit(struct trace_event_raw_sys_exit *ctx)
+{
+	__u64 pid_tgid = bpf_get_current_pid_tgid();
+
+	bpf_map_delete_elem(&pending_denied_opens, &pid_tgid);
+
+	return 0;
+}
+
+SEC("lsm/file_open")
+int enforce_file_open(__u64 *ctx)
+{
+	int ret = (int)ctx[1];
+	__u64 pid_tgid;
+
+	if (ret != 0)
+		return ret;
+
+	pid_tgid = bpf_get_current_pid_tgid();
+	if (bpf_map_lookup_elem(&pending_denied_opens, &pid_tgid) == 0)
+		return 0;
+
+	bpf_map_delete_elem(&pending_denied_opens, &pid_tgid);
+
+	return -EACCES;
 }
 
 static __always_inline int is_ipv4_allowed(struct bpf_sock_addr *ctx)
