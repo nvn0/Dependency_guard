@@ -25,6 +25,11 @@ const (
 
 	eventCommLen = 16
 	eventDataLen = 256
+	maxDenyFiles = 32
+	pathLen      = 256
+
+	fnvOffsetBasis uint64 = 14695981039346656037
+	fnvPrime       uint64 = 1099511628211
 )
 
 type MonitorConfig struct {
@@ -59,8 +64,8 @@ type Monitor struct {
 type EnforcerConfig struct {
 	ContainerPID     int
 	NetworkWhitelist []string
-	// DenyPaths		 []string
-	ObjectPath string
+	DenyPaths        []string
+	ObjectPath       string
 }
 
 type NetworkEnforcer struct {
@@ -139,7 +144,7 @@ func StartNetworkEnforcer(ctx context.Context, cfg EnforcerConfig, dnsServers []
 		return nil, fmt.Errorf("invalid container PID: %d", cfg.ContainerPID)
 	}
 
-	spec, err := loadMonitorSpec(cfg.ObjectPath)
+	spec, err := loadEnforcerSpec(cfg.ObjectPath)
 	if err != nil {
 		return nil, fmt.Errorf("load eBPF object: %w", err)
 	}
@@ -154,6 +159,11 @@ func StartNetworkEnforcer(ctx context.Context, cfg EnforcerConfig, dnsServers []
 		return nil, err
 	}
 
+	if err := setTargetCgroup(collection, cgroupPath); err != nil {
+		collection.Close()
+		return nil, err
+	}
+
 	cfg.NetworkWhitelist = append(cfg.NetworkWhitelist, "127.0.0.11")
 	cfg.NetworkWhitelist = append(cfg.NetworkWhitelist, dnsServers...)
 	if err := populateNetworkWhitelist(ctx, collection, cfg.NetworkWhitelist); err != nil {
@@ -161,7 +171,12 @@ func StartNetworkEnforcer(ctx context.Context, cfg EnforcerConfig, dnsServers []
 		return nil, err
 	}
 
-	links, err := attachNetworkEnforcement(collection, cgroupPath)
+	if err := populateDenyFiles(collection, cfg.DenyPaths); err != nil {
+		collection.Close()
+		return nil, err
+	}
+
+	links, err := attachEnforcement(collection, cgroupPath)
 	if err != nil {
 		collection.Close()
 		return nil, err
@@ -345,6 +360,89 @@ func populateNetworkWhitelist(ctx context.Context, collection *cebpf.Collection,
 	return nil
 }
 
+func populateDenyFiles(collection *cebpf.Collection, denyPaths []string) error {
+	denyMap := collection.Maps["deny_file_hashes"]
+	if denyMap == nil {
+		return errors.New("eBPF map deny_file_hashes not found")
+	}
+
+	files := make([]string, 0, len(denyPaths))
+	for _, configured := range denyPaths {
+		file, ok, err := normalizeDenyFile(configured)
+		if err != nil {
+			return err
+		}
+		if ok {
+			files = append(files, file)
+		}
+	}
+
+	if len(files) > maxDenyFiles {
+		return fmt.Errorf("too many eBPF deny files: got %d, max %d", len(files), maxDenyFiles)
+	}
+
+	var deny uint8 = 1
+	for _, file := range dedupeStrings(files) {
+		hash := fnv1a64(file)
+		if err := denyMap.Put(hash, deny); err != nil {
+			return fmt.Errorf("set eBPF deny file %q: %w", file, err)
+		}
+		fmt.Fprintf(os.Stderr, "eBPF deny file loaded: %s\n", file)
+	}
+
+	return nil
+}
+
+func normalizeDenyFile(configured string) (string, bool, error) {
+	value := strings.TrimSpace(configured)
+	if value == "" {
+		return "", false, nil
+	}
+	if strings.HasSuffix(value, "/") {
+		fmt.Fprintf(os.Stderr, "Warning: ignoring deny_paths directory entry %q; simplified eBPF deny only supports files\n", configured)
+		return "", false, nil
+	}
+
+	value = normalizeContainerPath(value)
+	if len(value) >= pathLen {
+		return "", false, fmt.Errorf("eBPF deny file %q is too long: max %d bytes", value, pathLen-1)
+	}
+
+	return value, true, nil
+}
+
+func normalizeContainerPath(path string) string {
+	if strings.HasPrefix(path, "~/") {
+		return "/root/" + strings.TrimPrefix(path, "~/")
+	}
+	if strings.HasPrefix(path, "/") {
+		return path
+	}
+	return "/workspace/" + strings.TrimPrefix(path, "/")
+}
+
+func dedupeStrings(values []string) []string {
+	seen := map[string]struct{}{}
+	deduped := make([]string, 0, len(values))
+	for _, value := range values {
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		deduped = append(deduped, value)
+	}
+	return deduped
+}
+
+func fnv1a64(value string) uint64 {
+	hash := fnvOffsetBasis
+	for i := 0; i < len(value); i++ {
+		hash ^= uint64(value[i])
+		hash *= fnvPrime
+	}
+	return hash
+}
+
 func containerCgroupPath(pid int) (string, error) {
 	procPath := fmt.Sprintf("/proc/%d/cgroup", pid)
 	contents, err := os.ReadFile(procPath)
@@ -403,6 +501,21 @@ func attachTracepoints(collection *cebpf.Collection) ([]link.Link, error) {
 	return links, nil
 }
 
+func attachEnforcement(collection *cebpf.Collection, cgroupPath string) ([]link.Link, error) {
+	links, err := attachNetworkEnforcement(collection, cgroupPath)
+	if err != nil {
+		return nil, err
+	}
+
+	pathLinks, err := attachPathEnforcement(collection)
+	if err != nil {
+		closeLinks(links)
+		return nil, err
+	}
+
+	return append(links, pathLinks...), nil
+}
+
 func attachNetworkEnforcement(collection *cebpf.Collection, cgroupPath string) ([]link.Link, error) {
 	definitions := []struct {
 		programName string
@@ -435,6 +548,47 @@ func attachNetworkEnforcement(collection *cebpf.Collection, cgroupPath string) (
 	}
 
 	return links, nil
+}
+
+func attachPathEnforcement(collection *cebpf.Collection) ([]link.Link, error) {
+	definitions := []struct {
+		programName string
+		category    string
+		name        string
+	}{
+		{"trace_openat", "syscalls", "sys_enter_openat"},
+		{"trace_openat_exit", "syscalls", "sys_exit_openat"},
+	}
+
+	links := make([]link.Link, 0, len(definitions)+1)
+	for _, definition := range definitions {
+		program := collection.Programs[definition.programName]
+		if program == nil {
+			closeLinks(links)
+			return nil, fmt.Errorf("eBPF program %s not found", definition.programName)
+		}
+
+		tp, err := link.Tracepoint(definition.category, definition.name, program, nil)
+		if err != nil {
+			closeLinks(links)
+			return nil, fmt.Errorf("attach tracepoint %s/%s: %w", definition.category, definition.name, err)
+		}
+		links = append(links, tp)
+	}
+
+	program := collection.Programs["enforce_file_open"]
+	if program == nil {
+		closeLinks(links)
+		return nil, errors.New("eBPF program enforce_file_open not found")
+	}
+
+	attached, err := link.AttachLSM(link.LSMOptions{Program: program})
+	if err != nil {
+		closeLinks(links)
+		return nil, fmt.Errorf("attach eBPF LSM program enforce_file_open: %w", err)
+	}
+
+	return append(links, attached), nil
 }
 
 func closeLinks(links []link.Link) {
@@ -486,6 +640,43 @@ func (e Event) TypeName() string {
 }
 
 func loadMonitorSpec(objectPath string) (*cebpf.CollectionSpec, error) {
+	spec, err := loadCollectionSpec(objectPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, programName := range []string{
+		"enforce_connect4",
+		"enforce_connect6",
+		"enforce_sendmsg4",
+		"enforce_sendmsg6",
+		"enforce_file_open",
+		"trace_openat_exit",
+	} {
+		delete(spec.Programs, programName)
+	}
+
+	return spec, nil
+}
+
+func loadEnforcerSpec(objectPath string) (*cebpf.CollectionSpec, error) {
+	spec, err := loadCollectionSpec(objectPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, programName := range []string{
+		"trace_execve",
+		"trace_connect",
+		"trace_connect_exit",
+	} {
+		delete(spec.Programs, programName)
+	}
+
+	return spec, nil
+}
+
+func loadCollectionSpec(objectPath string) (*cebpf.CollectionSpec, error) {
 	if objectPath != "" {
 		return cebpf.LoadCollectionSpec(objectPath)
 	}
