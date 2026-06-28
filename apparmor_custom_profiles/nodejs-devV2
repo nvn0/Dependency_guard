@@ -165,22 +165,20 @@ profile nodejs-devV2 flags=(attach_disconnected,mediate_deleted) {
   unix (send,receive) type=stream,
   unix (send,receive) type=dgram,
 
-# ── Allow SSH ──────────────────────────────────────────────
+  # ── Allow SSH ──────────────────────────────────────────────
 
-# SSH keys
-/root/.ssh/                   r,
-/root/.ssh/**                 r,
+  # SSH keys
+  /root/.ssh/                   r,
+  /root/.ssh/**                 r,
 
-# ssh-agent socket
-/run/ssh-agent.sock           rw,
-/tmp/ssh-*/                   rw,
-/tmp/ssh-*/**                 rw,
+  # ssh-agent socket
+  /run/ssh-agent.sock           rw,
+  /tmp/ssh-*/                   rw,
+  /tmp/ssh-*/**                 rw,
 
-# known_hosts escrita
-/root/.ssh/known_hosts        rw,
-/root/.ssh/known_hosts.lock   rw,
-
-
+  # known_hosts escrita
+  /root/.ssh/known_hosts        rw,
+  /root/.ssh/known_hosts.lock   rw,
 
 
 }

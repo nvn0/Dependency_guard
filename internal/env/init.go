@@ -105,7 +105,6 @@ func GenerateConfigFile(folderPath, projectName string) {
 		EBPF: EBPF{
 			Enabled: true,
 			Whitelist: []string{
-				"npm.npmjs.com",
 				"npmjs.com",
 				"registry.npmjs.org",
 			},
