@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -25,7 +26,7 @@ const (
 
 	eventCommLen = 16
 	eventDataLen = 256
-	maxDenyFiles = 32
+	maxDenyFiles = 64
 	pathLen      = 256
 
 	fnvOffsetBasis uint64 = 14695981039346656037
@@ -366,7 +367,7 @@ func populateDenyFiles(collection *cebpf.Collection, denyPaths []string) error {
 		return errors.New("eBPF map deny_file_hashes not found")
 	}
 
-	files := make([]string, 0, len(denyPaths))
+	files := make([]string, 0, len(denyPaths)*2)
 	for _, configured := range denyPaths {
 		file, ok, err := normalizeDenyFile(configured)
 		if err != nil {
@@ -374,6 +375,9 @@ func populateDenyFiles(collection *cebpf.Collection, denyPaths []string) error {
 		}
 		if ok {
 			files = append(files, file)
+			if base := pathpkg.Base(file); base != "." && base != "/" && base != file {
+				files = append(files, base)
+			}
 		}
 	}
 

@@ -11,7 +11,7 @@ typedef __u32 __be32;
 typedef __u32 __wsum;
 
 #define TASK_COMM_LEN 	16
-#define MAX_DENY_PATHS 	32
+#define MAX_DENY_PATHS 	64
 #define PATH_LEN 		256
 #define EACCES 			13
 #define FNV_OFFSET_BASIS 14695981039346656037ULL
