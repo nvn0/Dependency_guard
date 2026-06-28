@@ -43,7 +43,7 @@ profile nodejs-devV2 flags=(attach_disconnected,mediate_deleted) {
   deny capability sys_time,
   deny capability sys_nice,
   deny capability net_admin,
-  deny capability net_raw,
+  deny capability net_raw, # nega o ping
   deny capability mknod,
   deny capability setfcap,    # impede escalar capabilities
 
