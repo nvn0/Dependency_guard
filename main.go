@@ -130,6 +130,18 @@ func main() {
 		if err := env.ListSavedProjects(); err != nil {
 			fmt.Printf("Error: %v\n", err)
 		}
+	case "show":
+		if len(os.Args) != 4 {
+			fmt.Println("usage: safe-env show <project name> packages")
+			return
+		}
+		if os.Args[3] != "packages" {
+			fmt.Println("usage: safe-env show <project name> packages")
+			return
+		}
+		projectName := os.Args[2]
+
+		update.ShowInstalledLibs(projectName)
 
 	case "connect":
 		if len(os.Args) != 3 {
@@ -167,6 +179,7 @@ func main() {
 		fmt.Println(" safe-env update <project name> <library name>")
 		fmt.Println(" safe-env update <project name> all")
 		fmt.Println(" safe-env analyze <project name> <library name>")
+		fmt.Println(" safe-env show <project name> packages")
 		fmt.Println(" safe-env start <project name>")
 		fmt.Println(" safe-env stop <project name>")
 		fmt.Println(" sudo safe-env lockdown network <on/off>")

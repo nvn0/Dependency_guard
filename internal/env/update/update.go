@@ -16,6 +16,33 @@ const (
 	Blue   = "\033[34m"
 )
 
+func ShowInstalledLibs(projectName string) {
+
+	envType, container_id, err := utils.GetProjectInfo(projectName)
+	if err != nil {
+		fmt.Printf("Error getting project info: %v\n", err)
+		return
+	}
+
+	if envType != "node" && envType != "node-alpine" {
+		fmt.Println("ShowInstalledLibs currently only supports node (npm) projects. Detected environment: " + envType)
+		return
+	} else {
+
+		//get installed libs
+		libs, err := docker.GetInstalledNPMLibs(container_id)
+		if err != nil {
+			fmt.Printf("Error getting installed packages: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Packages found in project %s:\n", projectName)
+		for libName, libVersion := range libs {
+			fmt.Printf(" - %s: %s\n", libName, libVersion)
+		}
+	}
+}
+
 func Update(projectName, libraryName string) {
 	fmt.Printf("Updating library: %s in project: %s\n", libraryName, projectName)
 
