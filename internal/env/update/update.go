@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+const (
+	Reset  = "\033[0m"
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+	Blue   = "\033[34m"
+)
+
 func Update(projectName, libraryName string) {
 	fmt.Printf("Updating library: %s in project: %s\n", libraryName, projectName)
 
@@ -47,21 +55,31 @@ func Update(projectName, libraryName string) {
 		return
 	}
 
+	// Check if the library is installed in the project
 	var l_libName string
 	var currentVersion string
+	var found bool = false
 	for t_libName, libVersion := range libs {
 		if t_libName == libraryName {
-			fmt.Printf("Library found in project %s: %s (%s)\n", projectName, t_libName, libVersion)
+			fmt.Printf("Package found in project %s: %s (%s)\n", projectName, t_libName, libVersion)
 			l_libName = t_libName
 			currentVersion = libVersion
+			found = true
 		}
 	}
 
-	fmt.Println("\n=== Analyzing file changes between versions:", currentVersion, "(current installed)->", latest, "===")
-	// File change analysis with the instaled version and the latest version
-	_, err = analyze.AnalyzeNewFiles(l_libName, currentVersion, latest, sha)
-	if err != nil {
-		fmt.Printf("Warning: Error analyzing new files: %v\n", err)
+	if !found {
+		fmt.Println("\n" + Yellow + "Info: Package " + libraryName + " not installed in project " + projectName + Reset)
+		return
+	} else {
+
+		fmt.Println("\n=== Analyzing file changes between versions:", currentVersion, "(current installed)->", latest, "===")
+		// File change analysis with the instaled version and the latest version
+		_, err = analyze.AnalyzeNewFiles(l_libName, currentVersion, latest, sha)
+		if err != nil {
+			fmt.Printf("Warning: Error analyzing new files: %v\n", err)
+		}
+
 	}
 
 	if new {
