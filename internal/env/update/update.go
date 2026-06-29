@@ -44,7 +44,6 @@ func Update(projectName, libraryName string) {
 	// Get allow_scripts from config
 	var allowScripts bool = config_info.Install.AllowScripts
 
-
 	fmt.Println("Running a scan on lib:", libraryName)
 	new, age, latest, sha, err := analyze.AnalyzeNPMPackage(libraryName)
 	if err != nil {
@@ -109,9 +108,9 @@ func Update(projectName, libraryName string) {
 
 		var update_cmd string
 		if allowScripts {
-			update_cmd = "cd /workspace && npm update " + libName
+			update_cmd = "cd /workspace && npm update " + libraryName
 		} else {
-			update_cmd = "cd /workspace && npm update --ignore-scripts " + libName
+			update_cmd = "cd /workspace && npm update --ignore-scripts " + libraryName
 		}
 
 		cmd1 := []string{"mkdir", "-p", "/workspace"}
