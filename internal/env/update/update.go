@@ -41,6 +41,10 @@ func Update(projectName, libraryName string) {
 	// Get delay from config
 	var delay int = config_info.Install.Delay
 
+	// Get allow_scripts from config
+	var allowScripts bool = config_info.Install.AllowScripts
+
+
 	fmt.Println("Running a scan on lib:", libraryName)
 	new, age, latest, sha, err := analyze.AnalyzeNPMPackage(libraryName)
 	if err != nil {
@@ -103,6 +107,13 @@ func Update(projectName, libraryName string) {
 
 		fmt.Printf("\nUpdating library: %s\n", libraryName)
 
+		var update_cmd string
+		if allowScripts {
+			update_cmd = "cd /workspace && npm update " + libName
+		} else {
+			update_cmd = "cd /workspace && npm update --ignore-scripts " + libName
+		}
+
 		cmd1 := []string{"mkdir", "-p", "/workspace"}
 		_, errOut1, err1 := docker.ExecInContainer(container_id, cmd1)
 		if err1 != nil {
@@ -110,7 +121,7 @@ func Update(projectName, libraryName string) {
 			return
 		}
 
-		cmd := []string{"sh", "-c", "cd /workspace && npm update " + libraryName}
+		cmd := []string{"sh", "-c", update_cmd}
 		out, errOut, err := docker.ExecInContainer(container_id, cmd)
 		if err != nil {
 			fmt.Printf("Error updating library %s: %v, stderr: %s\n", libraryName, err, errOut)
