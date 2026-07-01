@@ -143,7 +143,7 @@ func GenerateStateFile(folderPath, projectName, environmentType, containerName, 
 			AppArmorProfile:     appArmorProfile,
 			AppArmorPath:        appArmorPath,
 			SeccompEnabled:      true,
-			ReadonlyFilesystem:  true,
+			ReadonlyFilesystem:  false,
 			CapabilitiesDropped: []string{"ALL"},
 		},
 	}
