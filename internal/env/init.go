@@ -106,6 +106,7 @@ func GenerateConfigFile(folderPath, projectName string) {
 			Enabled: true,
 			Whitelist: []string{
 				"npmjs.com",
+				"api.npmjs.org",
 				"registry.npmjs.org",
 			},
 			DenyPaths: []string{
