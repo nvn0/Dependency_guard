@@ -20,14 +20,18 @@ And since this tool use Docker, this creates other problems such as:
 
 > Where will the project's code files be located? (in the container? on the host machine?)
 
+A: In the Container.
+
 > Where will the Git files be located? (in the container? on the host machine?)
+
+A: In the Container.
 
 > "Can I open the code files in my text editor if they are in the container?"
 Yes in vscode with: `code --folder-uri vscode-remote://attached-container+<container_id>/workspace`
 
-### The solution:
 
-...Working on it
+
+
 
 ## Recommended steps:
 
@@ -69,13 +73,6 @@ Add a link for the binary it works like a system command (just for you user):
 ln -s ~/Dependency_guard/Dependency_guard ~/.local/bin/safe-env
 ```
 
-or for all users:
-```
-sudo ln -s ~/Dependency_guard/Dependency_guard /usr/local/bin/safe-env
-```
-- **Note:** This option is better in some cases like for the lockdown network command.
-
-
 <br>
 
 
@@ -83,6 +80,17 @@ Add to .bashrc file:
 ```
 export PATH="$HOME/.local/bin:$PATH"
 ```
+
+<br>
+
+or for all users:
+```
+sudo ln -s ~/Dependency_guard/Dependency_guard /usr/local/bin/safe-env
+```
+- **Note:** This option is better in some cases like for the lockdown network command.
+
+
+
 
 <br>
 
@@ -95,7 +103,7 @@ export PATH="$HOME/.local/bin:$PATH"
 | user and perms in the container |   ✅   |
 | eBPF                            |   ✅   |
 | Network lockdown                |  ✅  |
-| analyze libs                    |  90%  |
+| analyze libs                    |  ✅  |
 | install libs                    |   ✅   |
 
 
