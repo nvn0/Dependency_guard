@@ -308,6 +308,8 @@ func analyzeLastVersionAuthors(pkg, previous, latest string) {
 
 	fmt.Println("\n=== npm integrity analysis ===")
 
+	fmt.Println("\nComparing Authors and Maintainers of previous version:", previous, "with latest version:", latest)
+
 	// Comparação publisher / author
 	fmt.Println("\n[Author]")
 	if !compareUsers(prevData.Author, latestData.Author) {
@@ -326,6 +328,7 @@ func analyzeLastVersionAuthors(pkg, previous, latest string) {
 		fmt.Println("Warning: Maintainers changed!")
 		fmt.Printf("Previous: %d | Latest: %d\n", len(prevData.Maintainers), len(latestData.Maintainers))
 	} else {
+		fmt.Println("Maintainers count: ", len(latestData.Maintainers), " (no change)")
 		fmt.Println("OK")
 	}
 
@@ -371,6 +374,7 @@ func AnalyzeNPMPackage(pkg string) (bool, time.Duration, string, string, error) 
 		previousMaintainers = []Maintainer{}
 	}
 
+	fmt.Println("\nComparing maintainers with localcache for previous version:")
 	analyzeMaintainers(data.Maintainers, previousMaintainers)
 
 	// Update cache with current version
