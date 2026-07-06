@@ -1,6 +1,17 @@
 # Dependency_guard
 CLI tool to create, install and update dependencies from npm (and others) in a safely way.
 
+
+
+
+<!-- 
+![icon](assets/icons/dependency_guard_icon_transparente.png)
+-->
+
+
+![icon](https://raw.githubusercontent.com/nvn0/tech-icons/refs/heads/main/Dependency_Guard/dependency_guard_icon_transparente.png)
+
+
 Automatically creates docker containers each project.
 
 **Requirements:**
