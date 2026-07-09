@@ -30,6 +30,11 @@ go.work.sum
 # Editor/IDE
 .idea/
 .vscode/
+
+
+.github/
+.claude/
+
 Dependency_guard
 
 Overview.md
