@@ -48,6 +48,14 @@ type goModuleAnalysis struct {
 	ModifiedFiles     int
 }
 
+const (
+	Reset  = "\033[0m"
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+	Blue   = "\033[34m"
+)
+
 func AnalyzeGoPackage(libraryName string) error {
 	moduleName := normalizeModulePath(libraryName)
 	versions, err := fetchGoModuleVersions(moduleName)
@@ -454,13 +462,13 @@ func compareGoModuleSummaries(previous, latest *goModuleAnalysis) {
 	}
 
 	removedFiles := removedGoFiles(previous, latest)
-	printGoFileChangeGroup("\nRemoved", removedFiles, "\033[31m")
+	printGoFileChangeGroup("\nRemoved", removedFiles)
 
 	newFiles := newGoFiles(previous, latest)
-	printGoFileChangeGroup("\nAdded", newFiles, "\033[32m")
+	printGoFileChangeGroup("\nAdded", newFiles)
 
 	modifiedFiles := modifiedGoFiles(previous, latest)
-	printGoFileChangeGroup("\nModified", modifiedFiles, "\033[33m")
+	printGoFileChangeGroup("\nModified", modifiedFiles)
 
 	if !previous.PublishedAt.IsZero() && !latest.PublishedAt.IsZero() {
 		age := latest.PublishedAt.Sub(previous.PublishedAt)
@@ -530,9 +538,10 @@ func shortGoFileName(name string) string {
 	return strings.Join(parts[len(parts)-2:], "/")
 }
 
-func printGoFileChangeGroup(label string, files []string, color string) {
+// printGoFileChangeGroup prints a group of Go files with a label and color
+func printGoFileChangeGroup(label string, files []string) {
 	if len(files) == 0 {
-		fmt.Printf(" \033[32m%s:\033[0m none\n", label)
+		fmt.Printf(" %s%s:%s none\n", Green, label, Reset)
 		return
 	}
 
@@ -540,7 +549,7 @@ func printGoFileChangeGroup(label string, files []string, color string) {
 	for _, name := range files {
 		shortNames = append(shortNames, shortGoFileName(name))
 	}
-	fmt.Printf(" \033[33m%s:\033[0m %s\n", label, strings.Join(shortNames, ", "))
+	fmt.Printf(" %s%s:%s %s\n", Yellow, label, Reset, strings.Join(shortNames, ", "))
 }
 
 func printGoModuleSummary(summary *goModuleAnalysis) {
