@@ -11,7 +11,12 @@ Yes the Icon is AI generated
 ![icon](https://raw.githubusercontent.com/nvn0/tech-icons/refs/heads/main/Dependency_Guard/dependency_guard_icon_transparenteV3.png)
 
 
-Automatically creates docker containers each project.
+- Automatically creates docker containers each project.
+
+- Before every package/lib install/update an analysis is performed to provide useful information to the user, who then decides whether or not to proceed.
+
+
+<br>
 
 **Requirements:**
 - Use a Debian based distro (Because of AppArmor, Red Hat based distros use SELinux, in Arch it can be installed)
@@ -21,7 +26,7 @@ Automatically creates docker containers each project.
 **Important:** This tool is supposed to create a secure development environment, not a production environment. 
 
 
-Production environments should have stricter restrictions such as "read-only filesystem", (is possible), very detailed AppArmor restricted profiles, permissions, different users/groups, etc.
+Production environments should have stricter restrictions such as "read-only filesystem", (if possible), very detailed AppArmor restricted profiles, permissions, different users/groups, etc.
 
 
 With this project, the goal is to create a usable and secure balance. It's important to note that the main problem we aim to solve is supply chain attacks, that is, preventing **malware files** from package repositories from entering the developer's machine.
@@ -37,7 +42,8 @@ A: In the Container.
 A: In the Container.
 
 > "Can I open the code files in my text editor if they are in the container?"
-Yes in vscode with: `code --folder-uri vscode-remote://attached-container+<container_id>/workspace`
+
+A: Yes in vscode with: `code --folder-uri vscode-remote://attached-container+<container_id>/workspace`
 
 
 
@@ -100,7 +106,53 @@ sudo ln -s ~/Dependency_guard/Dependency_guard /usr/local/bin/safe-env
 - **Note:** This option is better in some cases like for the lockdown network command.
 
 
+<br>
 
+
+
+# How to use:
+
+Help command: (lists all the commands)
+```
+safe-env help
+```
+
+Output:
+```
+usage:
+ safe-env init <env-type> <project name>
+ safe-env install <project name> <library name>
+ safe-env update <project name> <library name>
+ safe-env update <project name> all
+ safe-env analyze <project name> <library name>
+ safe-env show <project name> packages
+ safe-env start <project name>
+ safe-env stop <project name>
+ sudo safe-env lockdown network <on/off>
+ safe-env connect <project name>
+ sudo safe-env monitor <project name>
+ sudo safe-env enforce <project name>
+ safe-env list
+ safe-env help
+```
+- Each command syntax attempts to be as simple and straightforward as possible.
+
+<br>
+
+Create new project:
+```
+safe-env init node project1
+```
+- Creates a new hardened Docker container for a Node Js project.
+
+- Now o can use the start command: `safe-env start <project name>`
+
+- Install packages/libs with: `safe-env install <project name> <library name>` ex: `safe-env install project1 express` 
+
+- Or connect to the container with: `safe-env connect <project name>`
+
+
+**Note**: After creating a container, you cannot install other programs via APT. You can modify the project's Docker files, which are used to generate the container images, and for example, add new tools like text editors.
 
 <br>
 
