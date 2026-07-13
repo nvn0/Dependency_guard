@@ -15,6 +15,7 @@ Yes the Icon is AI generated
 
 - Before every package/lib install/update an analysis is performed to provide useful information to the user, who then decides whether or not to proceed.
 
+- The install/update command also applies a minimum age requirement of 24 hours for a package after it was published.
 
 <br>
 
