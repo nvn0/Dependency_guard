@@ -40,6 +40,7 @@ type goModuleAnalysis struct {
 	PublishedAt       time.Time
 	FileCount         int
 	GoFiles           int
+	GoFileNames       []string
 	Dependencies      []string
 	SuspiciousImports []string
 	NewFiles          int
@@ -110,12 +111,25 @@ func analyzeGoModuleVersion(module, version string) (*goModuleAnalysis, error) {
 		return nil, err
 	}
 
+	goFileNames := []string{}
+	for name := range files {
+		if strings.HasSuffix(name, ".go") {
+			goFileNames = append(goFileNames, name)
+		}
+	}
+	sort.Strings(goFileNames)
+
 	suspiciousImports := []string{}
+	seenSuspicious := map[string]bool{}
 	for name, content := range files {
 		if !strings.HasSuffix(name, ".go") {
 			continue
 		}
 		for _, importPath := range collectSuspiciousImports(content) {
+			if seenSuspicious[importPath] {
+				continue
+			}
+			seenSuspicious[importPath] = true
 			suspiciousImports = append(suspiciousImports, importPath)
 		}
 	}
@@ -126,19 +140,23 @@ func analyzeGoModuleVersion(module, version string) (*goModuleAnalysis, error) {
 		PublishedAt:       publishedAt,
 		FileCount:         len(files),
 		GoFiles:           countGoFiles(files),
+		GoFileNames:       goFileNames,
 		Dependencies:      parseGoModDependencies(modContent),
 		SuspiciousImports: suspiciousImports,
 	}, nil
 }
 
-func fetchGoModuleVersions(module string) ([]string, error) {
+func goModuleProxyCandidates(module string) []string {
 	candidates := []string{module}
 	if module != strings.ToLower(module) {
-		candidates = append(candidates, strings.ToLower(module)) // Try lowercase version
+		candidates = append(candidates, strings.ToLower(module))
 	}
+	return candidates
+}
 
+func fetchGoModuleVersions(module string) ([]string, error) {
 	var lastErr error
-	for _, candidate := range candidates {
+	for _, candidate := range goModuleProxyCandidates(module) {
 		url := fmt.Sprintf("https://proxy.golang.org/%s/@v/list", candidate)
 		resp, err := http.Get(url)
 		if err != nil {
@@ -175,83 +193,110 @@ func fetchGoModuleVersions(module string) ([]string, error) {
 }
 
 func fetchGoModuleText(module, version, suffix string) (string, error) {
-	url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s%s", module, version, suffix)
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", fmt.Errorf("module-text request failed for %s@%s: %w", module, version, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("module-text request failed for %s@%s with status %d: %s", module, version, resp.StatusCode, url)
+	versionPath := version
+	if !strings.HasPrefix(versionPath, "v") {
+		versionPath = "v" + versionPath
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("module-text body read failed for %s@%s: %w", module, version, err)
+	var lastErr error
+	for _, candidate := range goModuleProxyCandidates(module) {
+		url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s%s", candidate, versionPath, suffix)
+		resp, err := http.Get(url)
+		if err != nil {
+			lastErr = fmt.Errorf("module-text request failed for %s@%s: %w", candidate, version, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return "", fmt.Errorf("module-text body read failed for %s@%s: %w", candidate, version, err)
+			}
+			return string(body), nil
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			lastErr = fmt.Errorf("module-text request failed for %s@%s with status 404: %s", candidate, version, url)
+			continue
+		}
+
+		lastErr = fmt.Errorf("module-text request failed for %s@%s with status %d: %s", candidate, version, resp.StatusCode, url)
 	}
 
-	return string(body), nil
+	return "", lastErr
 }
 
 func fetchGoModuleLatestInfo(module string) (*goModuleLatestResponse, error) {
-	url := fmt.Sprintf("https://proxy.golang.org/%s/@latest", module)
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("latest-info request failed for %s: %w", module, err)
-	}
-	defer resp.Body.Close()
+	var lastErr error
+	for _, candidate := range goModuleProxyCandidates(module) {
+		url := fmt.Sprintf("https://proxy.golang.org/%s/@latest", candidate)
+		resp, err := http.Get(url)
+		if err != nil {
+			lastErr = fmt.Errorf("latest-info request failed for %s: %w", candidate, err)
+			continue
+		}
+		defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("latest-info request failed for %s with status %d: %s", module, resp.StatusCode, url)
+		if resp.StatusCode == http.StatusOK {
+			var info goModuleLatestResponse
+			if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+				return nil, err
+			}
+			return &info, nil
+		}
+
+		lastErr = fmt.Errorf("latest-info request failed for %s with status %d: %s", candidate, resp.StatusCode, url)
 	}
 
-	var info goModuleLatestResponse
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return nil, err
-	}
-	return &info, nil
+	return nil, lastErr
 }
 
 func fetchGoModuleFiles(module, version string) (map[string]string, error) {
-	url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.zip", module, version)
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("module-zip request failed for %s@%s: %w", module, version, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("module-zip request failed for %s@%s with status %d: %s", module, version, resp.StatusCode, url)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
-	if err != nil {
-		return nil, err
-	}
-
-	files := map[string]string{}
-	for _, file := range reader.File {
-		if file.FileInfo().IsDir() {
-			continue
-		}
-		rc, err := file.Open()
+	var lastErr error
+	for _, candidate := range goModuleProxyCandidates(module) {
+		url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.zip", candidate, version)
+		resp, err := http.Get(url)
 		if err != nil {
+			lastErr = fmt.Errorf("module-zip request failed for %s@%s: %w", candidate, version, err)
 			continue
 		}
-		data, err := io.ReadAll(rc)
-		rc.Close()
-		if err != nil {
-			continue
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+
+			reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+			if err != nil {
+				return nil, err
+			}
+
+			files := map[string]string{}
+			for _, file := range reader.File {
+				if file.FileInfo().IsDir() {
+					continue
+				}
+				rc, err := file.Open()
+				if err != nil {
+					continue
+				}
+				data, err := io.ReadAll(rc)
+				rc.Close()
+				if err != nil {
+					continue
+				}
+				files[file.Name] = string(data)
+			}
+			return files, nil
 		}
-		files[file.Name] = string(data)
+
+		lastErr = fmt.Errorf("module-zip request failed for %s@%s with status %d: %s", candidate, version, resp.StatusCode, url)
 	}
-	return files, nil
+
+	return nil, lastErr
 }
 
 func latestSemverVersion(versions []string) string {
@@ -408,13 +453,94 @@ func compareGoModuleSummaries(previous, latest *goModuleAnalysis) {
 		fmt.Printf(" Suspicious imports found: %s\n", strings.Join(latest.SuspiciousImports, ", "))
 	}
 
+	removedFiles := removedGoFiles(previous, latest)
+	printGoFileChangeGroup("\nRemoved", removedFiles, "\033[31m")
+
+	newFiles := newGoFiles(previous, latest)
+	printGoFileChangeGroup("\nAdded", newFiles, "\033[32m")
+
+	modifiedFiles := modifiedGoFiles(previous, latest)
+	printGoFileChangeGroup("\nModified", modifiedFiles, "\033[33m")
+
 	if !previous.PublishedAt.IsZero() && !latest.PublishedAt.IsZero() {
 		age := latest.PublishedAt.Sub(previous.PublishedAt)
 		if age < 0 {
 			age = -age
 		}
-		fmt.Printf(" Published delta: %s\n", age.Round(time.Hour))
+		fmt.Printf("\n Published delta: %s\n", age.Round(time.Hour))
 	}
+}
+
+func removedGoFiles(previous, latest *goModuleAnalysis) []string {
+	latestSet := make(map[string]bool, len(latest.GoFileNames))
+	for _, name := range latest.GoFileNames {
+		latestSet[name] = true
+	}
+
+	removed := []string{}
+	for _, name := range previous.GoFileNames {
+		if !latestSet[name] {
+			removed = append(removed, name)
+		}
+	}
+	return removed
+}
+
+func newGoFiles(previous, latest *goModuleAnalysis) []string {
+	prevSet := make(map[string]bool, len(previous.GoFileNames))
+	for _, name := range previous.GoFileNames {
+		prevSet[name] = true
+	}
+
+	newFiles := []string{}
+	for _, name := range latest.GoFileNames {
+		if !prevSet[name] {
+			newFiles = append(newFiles, name)
+		}
+	}
+	return newFiles
+}
+
+func modifiedGoFiles(previous, latest *goModuleAnalysis) []string {
+	prevSet := make(map[string]bool, len(previous.GoFileNames))
+	for _, name := range previous.GoFileNames {
+		prevSet[name] = true
+	}
+
+	modified := []string{}
+	for _, name := range latest.GoFileNames {
+		if prevSet[name] {
+			modified = append(modified, name)
+		}
+	}
+	return modified
+}
+
+func shortGoFileName(name string) string {
+	if at := strings.Index(name, "@"); at >= 0 {
+		if slash := strings.Index(name[at:], "/"); slash >= 0 {
+			return name[at+slash+1:]
+		}
+	}
+
+	parts := strings.Split(name, "/")
+	if len(parts) <= 2 {
+		return name
+	}
+	return strings.Join(parts[len(parts)-2:], "/")
+}
+
+func printGoFileChangeGroup(label string, files []string, color string) {
+	if len(files) == 0 {
+		fmt.Printf(" \033[32m%s:\033[0m none\n", label)
+		return
+	}
+
+	shortNames := []string{}
+	for _, name := range files {
+		shortNames = append(shortNames, shortGoFileName(name))
+	}
+	fmt.Printf(" \033[33m%s:\033[0m %s\n", label, strings.Join(shortNames, ", "))
 }
 
 func printGoModuleSummary(summary *goModuleAnalysis) {
