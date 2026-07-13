@@ -165,31 +165,30 @@ func fetchGoModuleVersions(module string) ([]string, error) {
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			lastErr = fmt.Errorf("module %q was not found in the Go proxy; use a full module path such as github.com/BurntSushi/toml", candidate)
+			lastErr = fmt.Errorf("version-list request failed for %s with status 404: %s", candidate, url)
 			continue
 		}
-		lastErr = fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
+		lastErr = fmt.Errorf("version-list request failed for %s with status %d: %s", candidate, resp.StatusCode, url)
 	}
 
 	return nil, lastErr
 }
 
 func fetchGoModuleText(module, version, suffix string) (string, error) {
-	versionPath := strings.TrimPrefix(version, "v")
-	url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s%s", module, versionPath, suffix)
+	url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s%s", module, version, suffix)
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("module-text request failed for %s@%s: %w", module, version, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
+		return "", fmt.Errorf("module-text request failed for %s@%s with status %d: %s", module, version, resp.StatusCode, url)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("module-text body read failed for %s@%s: %w", module, version, err)
 	}
 
 	return string(body), nil
@@ -199,12 +198,12 @@ func fetchGoModuleLatestInfo(module string) (*goModuleLatestResponse, error) {
 	url := fmt.Sprintf("https://proxy.golang.org/%s/@latest", module)
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("latest-info request failed for %s: %w", module, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
+		return nil, fmt.Errorf("latest-info request failed for %s with status %d: %s", module, resp.StatusCode, url)
 	}
 
 	var info goModuleLatestResponse
@@ -215,16 +214,15 @@ func fetchGoModuleLatestInfo(module string) (*goModuleLatestResponse, error) {
 }
 
 func fetchGoModuleFiles(module, version string) (map[string]string, error) {
-	versionPath := strings.TrimPrefix(version, "v")
-	url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.zip", module, versionPath)
+	url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.zip", module, version)
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("module-zip request failed for %s@%s: %w", module, version, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status %d", resp.StatusCode)
+		return nil, fmt.Errorf("module-zip request failed for %s@%s with status %d: %s", module, version, resp.StatusCode, url)
 	}
 
 	body, err := io.ReadAll(resp.Body)
