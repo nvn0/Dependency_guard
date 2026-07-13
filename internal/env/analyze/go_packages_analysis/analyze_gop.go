@@ -57,6 +57,7 @@ const (
 )
 
 func AnalyzeGoPackage(libraryName string) error {
+	fmt.Printf("(Beta feature) - Analyzing Go package: %s\n", libraryName)
 	moduleName := normalizeModulePath(libraryName)
 	versions, err := fetchGoModuleVersions(moduleName)
 	if err != nil {
