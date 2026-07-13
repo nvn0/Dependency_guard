@@ -25,7 +25,7 @@ func ShowInstalledLibs(projectName string) {
 	}
 
 	if envType != "node" && envType != "node-alpine" {
-		fmt.Println("ShowInstalledLibs currently only supports node (npm) projects. Detected environment: " + envType)
+		fmt.Println("Show Installed packages/Libs currently only supports node (npm) projects. Detected environment: " + envType)
 		return
 	} else {
 

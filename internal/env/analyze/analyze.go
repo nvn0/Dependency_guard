@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
+	gopkganalysis "Dependency_guard/internal/env/analyze/go_packages_analysis"
 	"Dependency_guard/internal/env/utils"
 )
 
@@ -411,13 +412,18 @@ func Run(projectName, libraryName string) {
 		return
 	}
 
-	if envType != "node" {
-		fmt.Printf("Analysis currently only supports node (npm) projects. Detected environment: %s\n", envType)
-		return
-	}
-
-	_, _, _, _, err = AnalyzeNPMPackage(libraryName)
-	if err != nil {
-		fmt.Printf("Error analyzing package: %v\n", err)
+	switch envType {
+	case "node", "node-alpine":
+		_, _, _, _, err = AnalyzeNPMPackage(libraryName)
+		if err != nil {
+			fmt.Printf("Error analyzing package: %v\n", err)
+		}
+	case "go":
+		err := gopkganalysis.AnalyzeGoPackage(libraryName)
+		if err != nil {
+			fmt.Printf("Error analyzing Go package: %v\n", err)
+		}
+	default:
+		fmt.Printf("Analysis currently only supports node (npm) and go projects. Detected environment: %s\n", envType)
 	}
 }

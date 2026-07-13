@@ -38,3 +38,5 @@ go.work.sum
 Dependency_guard
 
 Overview.md
+go_packages_analise.md
+internal/env/analyze/go_packages_analysis/analyze_gop_test.go

@@ -20,12 +20,15 @@ func Start(projectName string) {
 		return
 	}
 
-	cmd1 := []string{"mkdir", "-p", "/workspace"}
-	_, errOut1, err1 := docker.ExecInContainer(container_id, cmd1)
-	if err1 != nil {
-		fmt.Printf("Error creating workspace directory: %v, stderr: %s\n", err1, errOut1)
-		return
-	}
+	/*
+		// Começa a ser desnecessário devido a criação do diretório /workspace no Dockerfile
+			cmd1 := []string{"mkdir", "-p", "/workspace"}
+			_, errOut1, err1 := docker.ExecInContainer(container_id, cmd1)
+			if err1 != nil {
+				fmt.Printf("Error creating workspace directory: %v, stderr: %s\n", err1, errOut1)
+				return
+			}
+	*/
 
 	container_ip, err := utils.GetContainerIP(container_id)
 	if err != nil {

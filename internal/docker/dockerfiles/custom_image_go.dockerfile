@@ -1,6 +1,6 @@
 FROM golang:1.25-alpine
-RUN apt update && apt install -y \
+RUN apk update && apk add --no-cache \
     nano \
     git \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/cache/apk/* \
 WORKDIR /workspace

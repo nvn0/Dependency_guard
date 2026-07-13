@@ -40,7 +40,7 @@ func ConnectToContainer(projectName string) error {
 		return fmt.Errorf("Error getting project container ID: %v", err)
 	}
 
-	if envType == "node-alpine" {
+	if envType == "node-alpine" || envType == "go" {
 		fmt.Println("Connecting to container:", container_id, "with shell: /bin/sh")
 		cmd := exec.Command("docker", "exec", "-it", container_id, "/bin/sh")
 		cmd.Stdin = os.Stdin
