@@ -1,5 +1,5 @@
 # Dependency_guard
-CLI tool to create, install and update dependencies from npm (and others) in a safely way.
+CLI tool to create isolated environments for projects and install/update dependencies from npm (and others) in a safely way.
 
 
 
@@ -14,7 +14,7 @@ Yes the Icon is AI generated
 Automatically creates docker containers each project.
 
 **Requirements:**
-- Use a Debian based distro
+- Use a Debian based distro (Because of AppArmor, Red Hat based distros use SELinux, in Arch it can be installed)
 - Install Docker: https://docs.docker.com/engine/install/debian/
 
 
