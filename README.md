@@ -11,7 +11,7 @@ Yes the Icon is AI generated
 ![icon](https://raw.githubusercontent.com/nvn0/tech-icons/refs/heads/main/Dependency_Guard/dependency_guard_icon_transparenteV3.png)
 
 
-- Automatically creates docker containers each project.
+- Automatically creates docker containers for each project.
 
 - Before every package/lib install/update an analysis is performed to provide useful information to the user, who then decides whether or not to proceed.
 
