@@ -217,7 +217,7 @@ projeto.
 Chama a funcoes pra criar a config do apparmor e seccomp, e criar o monitoramento
 ebpf (mas nao o liga).
 */
-func Init(environmentType, projectName string) {
+func Init(environmentType, projectName string, useDefaultAppArmor, useRootUser bool) {
 
 	exists, err := ProjectExists(projectName)
 	if err != nil {
@@ -229,7 +229,7 @@ func Init(environmentType, projectName string) {
 		return
 	}
 
-	id, err := docker.CreateContainer(environmentType, projectName)
+	id, err := docker.CreateContainer(environmentType, projectName, useDefaultAppArmor, useRootUser)
 	if err != nil {
 		panic(err) //erro mostra filsystem e path do projeto, para facilitar debugging, arranjar depois para erro mais generico
 		//fmt.Println("Error creating container:", err)

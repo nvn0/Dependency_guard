@@ -163,7 +163,7 @@ func buildImage(cli *client.Client, dockerfilePath, imageName string) error {
 	return nil
 }
 
-func CreateContainer(environmentType, projectName string) (string, error) {
+func CreateContainer(environmentType, projectName string, useDefaultAppArmor, useRootUser bool) (string, error) {
 	// Validate environment type
 	validTypes := map[string]bool{"node": true, "node-alpine": true, "python": true, "go": true}
 	if !validTypes[environmentType] {
@@ -196,12 +196,14 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 	// Get the appropriate AppArmor profile for the environment type
 	armorProfile := security.GetAppArmorProfileForEnv(environmentType)
 
-	// Verify and ensure AppArmor profile is loaded BEFORE creating the container
-	profileName, err := security.EnsureAppArmorProfileLoaded(armorProfile)
-	if err != nil {
-		// If custom profile fails, fall back to docker-default
-		fmt.Printf("\nFalling back to docker-default AppArmor profile\n")
-		profileName = "docker-default"
+	profileName := "docker-default"
+	if !useDefaultAppArmor {
+		// Verify and ensure the custom AppArmor profile is loaded before creating the container.
+		profileName, err = security.EnsureAppArmorProfileLoaded(armorProfile)
+		if err != nil {
+			fmt.Printf("\nFalling back to docker-default AppArmor profile\n")
+			profileName = "docker-default"
+		}
 	}
 
 	// Build SecurityOpt with the appropriate AppArmor profile
@@ -211,6 +213,10 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 		//"seccomp=default", // causa erro, usar o default do Docker que já é seguro, ou seja, não especificar seccomp
 		fmt.Sprintf("apparmor=%s", profileName), // or apparmor=docker-default if fallback
 	}
+	containerUser := "1001:1001"
+	if useRootUser {
+		containerUser = "0:0"
+	}
 
 	resp, err := cli.ContainerCreate(
 		context.Background(),
@@ -219,8 +225,7 @@ func CreateContainer(environmentType, projectName string) (string, error) {
 				Image: imageName,
 				Cmd:   []string{"sleep", "infinity"},
 				Tty:   false,
-				//User:  "0:0",
-				User: "1001:1001", // resolvido user normal ja funciona
+				User:  containerUser,
 			},
 			HostConfig: &container.HostConfig{
 				ReadonlyRootfs: false, // deve ser true apenas para produção e apps que não precisam de escrita, para desenvolvimento pode ser false

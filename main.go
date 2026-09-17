@@ -1,9 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
-
 	"Dependency_guard/internal/docker"
 	"Dependency_guard/internal/env"
 	"Dependency_guard/internal/env/analyze"
@@ -21,14 +21,21 @@ func main() {
 
 	switch os.Args[1] {
 	case "init":
-		if len(os.Args) != 4 {
-			fmt.Println("usage: safe-env init <env-type> <project name>")
+		initFlags := flag.NewFlagSet("init", flag.ContinueOnError)
+		useDefaultAppArmor := initFlags.Bool("daa", false, "use the default Docker AppArmor profile")
+		useRootUser := initFlags.Bool("root", false, "run the container as root")
+
+		if err := initFlags.Parse(os.Args[2:]); err != nil {
+			return
+		}
+		if initFlags.NArg() != 2 {
+			fmt.Println("usage: safe-env init [--daa] [--root] <env-type> <project name>")
 			fmt.Println("env-type: node, node-alpine, python, go")
 			return
 		}
-		environmentType := os.Args[2]
-		projectName := os.Args[3]
-		env.Init(environmentType, projectName)
+		environmentType := initFlags.Arg(0)
+		projectName := initFlags.Arg(1)
+		env.Init(environmentType, projectName, *useDefaultAppArmor, *useRootUser)
 
 	case "install":
 		if len(os.Args) != 4 {
@@ -174,7 +181,7 @@ func main() {
 
 	case "help":
 		fmt.Println("usage:")
-		fmt.Println(" safe-env init <env-type> <project name>")
+		fmt.Println(" safe-env init [--daa] [--root] <env-type> <project name>")
 		fmt.Println(" safe-env install <project name> <library name>")
 		fmt.Println(" safe-env update <project name> <library name>")
 		fmt.Println(" safe-env update <project name> all")
