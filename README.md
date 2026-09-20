@@ -168,5 +168,5 @@ safe-env init node project1
 | Network lockdown                |  ✅  |
 | analyze libs                    |  ✅  |
 | install libs                    |   ✅   |
-
-
+| Incus/LXC support               |   `❌`   |
+| Podman support                  |   `❌`   |
