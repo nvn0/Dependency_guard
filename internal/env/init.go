@@ -19,6 +19,10 @@ import (
 	"time"
 )
 
+
+const SaveProjectsDir  = ".safe-env-projects"
+
+
 // Config file struct - Mutable runtime configuration
 type Config struct {
 	Install Install `json:"install"`
@@ -237,7 +241,7 @@ func Init(environmentType, projectName string, useDefaultAppArmor, useRootUser b
 
 	fmt.Printf("\nInitialized %s environment for project '%s'\n", environmentType, projectName)
 
-	base_path, err := ensureDirInHome("safe-env-projects")
+	base_path, err := ensureDirInHome(SaveProjectsDir)
 	if err != nil {
 		panic(err)
 	}
@@ -259,7 +263,7 @@ func Init(environmentType, projectName string, useDefaultAppArmor, useRootUser b
 
 	GenerateProjectFiles(project_path, projectName, environmentType, containerName, id, armorProfile.Name, armorProfile.InstalledPath)
 
-	// Save project name to ~/safe-env-projects/projects.txt
+	// Save project name to ~/.safe-env-projects/projects.txt
 	if err := SaveProject(projectName); err != nil {
 		fmt.Printf("Warning: Failed to save project name: %v\n", err)
 	}

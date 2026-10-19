@@ -1,6 +1,8 @@
 FROM node:24-alpine
 RUN apk update && apk add --no-cache \
     nano \
+    micro \
+    curl \
     git \
     && rm -rf /var/cache/apk/* \
     && npm install -g npm@latest \

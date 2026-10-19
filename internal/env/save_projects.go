@@ -13,10 +13,8 @@ import (
 	"strings"
 )
 
-const (
-	SaveProjectsDir  = "safe-env-projects"
-	ProjectsFileName = "projects.txt"
-)
+const ProjectsFileName = "projects.txt"
+
 
 // SaveProject appends the project name to the projects list file
 func SaveProject(projectName string) error {

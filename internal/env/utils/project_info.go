@@ -51,19 +51,19 @@ func GetProjectInfo(projectName string) (string, string, error) {
 
 	var state_file string = fmt.Sprintf("%s_state.json", projectName)
 
-	//verify safe-env-projects folder exists
-	safeEnvProjectsPath := filepath.Join(home, "safe-env-projects")
+	//verify .safe-env-projects folder exists
+	safeEnvProjectsPath := filepath.Join(home, ".safe-env-projects")
 	if _, err := os.Stat(safeEnvProjectsPath); os.IsNotExist(err) {
-		return "", "", fmt.Errorf("safe-env-projects folder does not exist: %s", safeEnvProjectsPath)
+		return "", "", fmt.Errorf(".safe-env-projects folder does not exist: %s", safeEnvProjectsPath)
 	}
 
 	//verify project folder exists
-	projectPath := filepath.Join(home, "safe-env-projects", projectName)
+	projectPath := filepath.Join(home, ".safe-env-projects", projectName)
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
 		return "", "", fmt.Errorf("Error: Verify project name - project folder does not exist: %s", projectPath)
 	}
 
-	path := filepath.Join(home, "safe-env-projects", projectName, state_file)
+	path := filepath.Join(home, ".safe-env-projects", projectName, state_file)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return "", "", fmt.Errorf("state file does not exist: %s", path)
 	}
@@ -141,19 +141,19 @@ func GetConfigInfo(projectName string) (ConfigInfo, error) {
 
 	var config_file string = fmt.Sprintf("%s_config.json", projectName)
 
-	//verify safe-env-projects folder exists
-	safeEnvProjectsPath := filepath.Join(home, "safe-env-projects")
+	//verify .safe-env-projects folder exists
+	safeEnvProjectsPath := filepath.Join(home, ".safe-env-projects")
 	if _, err := os.Stat(safeEnvProjectsPath); os.IsNotExist(err) {
-		return ConfigInfo{}, fmt.Errorf("safe-env-projects folder does not exist: %s", safeEnvProjectsPath)
+		return ConfigInfo{}, fmt.Errorf(".safe-env-projects folder does not exist: %s", safeEnvProjectsPath)
 	}
 
 	//verify project folder exists
-	projectPath := filepath.Join(home, "safe-env-projects", projectName)
+	projectPath := filepath.Join(home, ".safe-env-projects", projectName)
 	if _, err := os.Stat(projectPath); os.IsNotExist(err) {
 		return ConfigInfo{}, fmt.Errorf("Error: Verify project name - project folder does not exist: %s", projectPath)
 	}
 
-	path := filepath.Join(home, "safe-env-projects", projectName, config_file)
+	path := filepath.Join(home, ".safe-env-projects", projectName, config_file)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return ConfigInfo{}, fmt.Errorf("config file does not exist: %s", path)
 	}

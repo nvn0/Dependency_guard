@@ -58,6 +58,7 @@ func getImageNameForType(envType string) string {
 	}
 }
 
+// getProjectRoot returns the root directory of the project based on the executable's location.
 func getProjectRoot() (string, error) {
 	exePath, err := os.Executable()
 	if err != nil {
@@ -165,7 +166,7 @@ func buildImage(cli *client.Client, dockerfilePath, imageName string) error {
 
 func CreateContainer(environmentType, projectName string, useDefaultAppArmor, useRootUser bool) (string, error) {
 	// Validate environment type
-	validTypes := map[string]bool{"node": true, "node-alpine": true, "python": true, "go": true}
+	validTypes := map[string]bool{"node": true, "node-alpine": true, "python": true, "go": true, "default": true}
 	if !validTypes[environmentType] {
 		fmt.Printf("\nInvalid environment type: %s. Valid options: node, node-alpine, python, go\n", environmentType)
 		return "", fmt.Errorf("invalid environment type: %s", environmentType)
